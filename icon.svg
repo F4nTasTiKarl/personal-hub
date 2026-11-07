@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#e0e7ff" stop-opacity="0.85" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#312e81" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <g filter="url(#shadow)">
+    <!-- Shield Outline -->
+    <path d="M256 80 L390 136 C390 264 332 372 256 424 C180 372 122 264 122 136 Z" fill="url(#shieldGrad)" />
+    <!-- Inner Compass / Keyhole symbol -->
+    <circle cx="256" cy="220" r="42" fill="#4f46e5" />
+    <path d="M242 248 L270 248 L284 326 L228 326 Z" fill="#4f46e5" />
+    <polygon points="256,150 268,210 256,200 244,210" fill="#ffffff" />
+    <polygon points="256,290 268,230 256,240 244,230" fill="#c7d2fe" />
+  </g>
+</svg>

@@ -1,0 +1,3966 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>个人私有数字中心 | Personal OS & Private Hub</title>
+  <meta name="description" content="基于 Web Crypto API 端到端加密与 Bento Grid 设计的高扩展性个人私有数字中心">
+  
+  <!-- PWA & 移动端深度适配支持 -->
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PersonalOS">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          },
+          boxShadow: {
+            'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.08)',
+            'glass-dark': '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Marked.js (Markdown 解析器) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- QRCode.js (移动端扫码互联轻量生成器) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+  <style>
+    /* 移动端安全区域适配 */
+    .safe-pb {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+    }
+    .mobile-nav-safe {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.4rem);
+    }
+
+    /* 移动端 iOS 防自动放大缩放 */
+    @media (max-width: 640px) {
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    /* 自定义美化滚动条 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(156, 163, 175, 0.7);
+    }
+    
+    /* 毛玻璃风格卡片 */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .dark .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(30, 41, 59, 0.8);
+    }
+
+    .glass-nav {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .dark .glass-nav {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+    }
+
+    /* 敏感信息模糊保护 */
+    .privacy-blur {
+      filter: blur(6px);
+      user-select: none;
+      transition: filter 0.2s ease;
+    }
+    .privacy-blur:hover {
+      filter: blur(0px);
+    }
+
+    /* 动画 */
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans transition-colors duration-200 overflow-x-hidden">
+
+  <!-- 全局背景装饰渐变光晕 -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div class="absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-indigo-500/10 dark:bg-indigo-600/15 blur-3xl"></div>
+    <div class="absolute top-[40%] -right-[10%] w-[45vw] h-[45vw] rounded-full bg-purple-500/10 dark:bg-purple-600/15 blur-3xl"></div>
+    <div class="absolute -bottom-[10%] left-[20%] w-[40vw] h-[40vw] rounded-full bg-emerald-500/10 dark:bg-emerald-600/10 blur-3xl"></div>
+  </div>
+
+  <!-- Toast 提示框浮动容器 -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ======================================================== -->
+  <!-- [VIEW: AUTH & LOCK SCREEN] 认证与锁定屏幕 -->
+  <!-- ======================================================== -->
+  <div id="auth-screen" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl">
+    <div class="w-full max-w-md glass-card rounded-2xl shadow-2xl p-6 sm:p-8 relative border border-slate-700/50">
+      
+      <!-- 首次初始化引导界面 -->
+      <div id="onboarding-panel" class="hidden">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+            <i data-lucide="shield-check" class="w-8 h-8"></i>
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">初始化个人数字中心</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            设置主控密码（Master Password）。您的数据将在浏览器端通过 <span class="font-semibold text-brand-500">AES-256-GCM</span> 算法加密，除您之外无人能够解密。
+          </p>
+        </div>
+
+        <form id="setup-master-form" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">主控密码</label>
+            <div class="relative">
+              <input type="password" id="new-master-pwd" required minlength="6" placeholder="请输入强主控密码（至少6位）"
+                class="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+              <button type="button" onclick="togglePasswordVisibility('new-master-pwd')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i data-lucide="eye" class="w-5 h-5"></i>
+              </button>
+            </div>
+            <!-- 密码强度提示条 -->
+            <div class="mt-2 h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div id="pwd-strength-bar" class="h-full w-0 transition-all duration-300 bg-red-500"></div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">确认主控密码</label>
+            <div class="relative">
+              <input type="password" id="confirm-master-pwd" required minlength="6" placeholder="请再次输入主控密码"
+                class="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs flex items-start gap-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 shrink-0"></i>
+            <span>请务必牢记主密码！由于采用端到端零知识加密，若遗忘密码将无法恢复任何数据。</span>
+          </div>
+
+          <button type="submit" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>初始化并加载预设演示数据</span>
+          </button>
+        </form>
+
+        <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
+          <p class="text-xs text-slate-400 mb-2">已有加密备份文件？</p>
+          <label class="inline-flex items-center gap-2 text-xs font-medium text-brand-500 hover:text-brand-600 cursor-pointer">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+            <span>从 .enc.json 备份文件恢复</span>
+            <input type="file" id="onboarding-restore-file" accept=".json" class="hidden" onchange="handleRestoreFromFile(event)">
+          </label>
+        </div>
+      </div>
+
+      <!-- 登录/解锁界面 -->
+      <div id="unlock-panel">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+            <i data-lucide="lock" class="w-8 h-8"></i>
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">私有数字中心已锁定</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">请输入主控密码解密内存数据</p>
+        </div>
+
+        <form id="unlock-form" class="space-y-4">
+          <div>
+            <div class="relative">
+              <input type="password" id="unlock-pwd" required placeholder="输入主控密码" autocomplete="current-password"
+                class="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+              <button type="button" onclick="togglePasswordVisibility('unlock-pwd')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i data-lucide="eye" class="w-5 h-5"></i>
+              </button>
+            </div>
+            <!-- 防暴力破解锁定倒计时提示 -->
+            <div id="cooldown-timer-badge" class="hidden mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs text-center font-medium"></div>
+          </div>
+
+          <button type="submit" id="unlock-btn" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2">
+            <i data-lucide="key" class="w-4 h-4"></i>
+            <span>解锁并进入系统</span>
+          </button>
+        </form>
+
+        <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
+          <button type="button" onclick="triggerRestorePrompt()" class="hover:text-brand-500 flex items-center gap-1">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>导入备份替换</span>
+          </button>
+          <button type="button" onclick="openMobileConnectModal()" class="text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 font-medium">
+            <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+            <span>手机端访问</span>
+          </button>
+          <button type="button" onclick="promptResetAllData()" class="hover:text-red-500 flex items-center gap-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>重置数据</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- [MAIN APP SHELL] 主应用程序框架（解密后呈现） -->
+  <!-- ======================================================== -->
+  <div id="app-shell" class="min-h-full flex flex-col relative z-10 hidden">
+    
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 z-30 glass-nav h-16 flex items-center justify-between px-4 sm:px-6">
+      <div class="flex items-center gap-3">
+        <!-- 移动端侧边栏切换按钮 -->
+        <button type="button" onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        
+        <!-- Logo -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/25">
+            <i data-lucide="compass" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 id="app-title-display" class="text-base font-bold tracking-tight leading-tight">Personal OS</h1>
+            <p class="text-[10px] text-slate-400 tracking-wider font-mono">E2EE PRIVATE HUB</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 全局快速搜索框 -->
+      <div class="hidden md:flex items-center flex-1 max-w-md mx-6">
+        <div class="relative w-full">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+          <input type="text" id="global-search-input" placeholder="全局搜索书签、备忘或账单 (按 '/' 激活)"
+            class="w-full pl-9 pr-10 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <span class="absolute right-2.5 top-1.5 px-1.5 py-0.5 rounded text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-500 font-mono">/</span>
+        </div>
+      </div>
+
+      <!-- 右侧控制区 -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- 手机移动端扫码与网址配置按钮 -->
+        <button type="button" onclick="openMobileConnectModal()" class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 text-xs font-semibold transition border border-brand-500/20 shadow-sm" title="手机端扫码连接与网址">
+          <i data-lucide="smartphone" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">手机访问</span>
+        </button>
+
+        <!-- 自动锁定倒计时提示 -->
+        <div id="autolock-indicator" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 text-slate-500 dark:text-slate-400" title="无操作自动锁定倒计时">
+          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+          <span id="autolock-countdown">15:00</span>
+        </div>
+
+        <!-- 云同步指示按钮 -->
+        <button type="button" onclick="openSyncModal()" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition relative" title="云端同步状态">
+          <i data-lucide="cloud" class="w-5 h-5"></i>
+          <span id="sync-status-dot" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500"></span>
+        </button>
+
+        <!-- 暗黑模式切换 -->
+        <button type="button" onclick="toggleTheme()" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition" title="切换深色/浅色主题">
+          <i id="theme-toggle-icon" data-lucide="moon" class="w-5 h-5"></i>
+        </button>
+
+        <!-- 一键锁屏 -->
+        <button type="button" onclick="lockVault()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium transition" title="锁定系统并清除内存明文">
+          <i data-lucide="lock" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">锁定</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 应用程序主体内容区 -->
+    <div class="flex-1 flex overflow-hidden">
+      
+      <!-- 侧边栏导航 -->
+      <aside id="sidebar-nav" class="fixed lg:static inset-y-0 left-0 z-30 w-64 glass-card lg:border-t-0 lg:border-l-0 lg:border-b-0 border-r border-slate-200 dark:border-slate-800 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
+        <div class="p-4 flex-1 overflow-y-auto space-y-6">
+          
+          <!-- 核心系统模块导航 -->
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">核心模块</p>
+            <nav class="space-y-1">
+              <button onclick="switchView('dashboard')" id="nav-btn-dashboard" class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition">
+                <i data-lucide="layout-grid" class="w-4 h-4 text-brand-500"></i>
+                <span>控制台总览</span>
+              </button>
+              <button onclick="switchView('profile')" id="nav-btn-profile" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition">
+                <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i>
+                <span>个人档案中心</span>
+              </button>
+              <button onclick="switchView('bookmarks')" id="nav-btn-bookmarks" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition">
+                <i data-lucide="bookmark" class="w-4 h-4 text-blue-500"></i>
+                <span>网站分类导航</span>
+              </button>
+              <button onclick="switchView('notes')" id="nav-btn-notes" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition">
+                <i data-lucide="file-text" class="w-4 h-4 text-amber-500"></i>
+                <span>个人资料与笔记</span>
+              </button>
+              <button onclick="switchView('finance')" id="nav-btn-finance" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition">
+                <i data-lucide="wallet" class="w-4 h-4 text-emerald-500"></i>
+                <span>个人财务管家</span>
+              </button>
+            </nav>
+          </div>
+
+          <!-- 自定义扩展模块导航 -->
+          <div>
+            <div class="flex items-center justify-between px-3 mb-2">
+              <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">自定义模块</p>
+              <button onclick="openCreateCustomModuleModal()" class="text-brand-500 hover:text-brand-600 text-xs font-medium flex items-center gap-1" title="添加新的自定义模块">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>新建</span>
+              </button>
+            </div>
+            <nav id="custom-modules-nav-list" class="space-y-1">
+              <!-- 动态插入自定义模块列表 -->
+            </nav>
+          </div>
+
+          <!-- 系统偏好与设置 -->
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">系统偏好</p>
+            <nav class="space-y-1">
+              <button onclick="switchView('settings')" id="nav-btn-settings" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition">
+                <i data-lucide="sliders" class="w-4 h-4 text-slate-400"></i>
+                <span>系统设置与同步</span>
+              </button>
+            </nav>
+          </div>
+
+        </div>
+
+        <!-- 侧边栏底部用户信息微卡 -->
+        <div class="p-3 border-t border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50">
+            <img id="sidebar-avatar-img" src="" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-slate-300 dark:bg-slate-700">
+            <div class="flex-1 min-w-0">
+              <p id="sidebar-nickname-display" class="text-xs font-semibold truncate">用户昵称</p>
+              <p id="sidebar-status-display" class="text-[10px] text-emerald-500 truncate font-medium">● 专注工作中</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 移动端侧边栏遮罩 -->
+      <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 z-20 bg-slate-950/50 backdrop-blur-sm lg:hidden hidden"></div>
+
+      <!-- 主视图渲染容器 -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 safe-pb">
+        
+        <!-- ---------------------------------------------------- -->
+        <!-- VIEW 1: 控制台总览 (DASHBOARD - BENTO GRID) -->
+        <!-- ---------------------------------------------------- -->
+        <section id="view-dashboard" class="view-panel space-y-6">
+          <!-- 顶部欢迎 Banner -->
+          <div class="glass-card rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="relative z-10">
+              <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>端到端密态运行中</span>
+              </div>
+              <h2 class="text-2xl font-bold tracking-tight">你好，<span id="dash-greeting-name" class="text-brand-600 dark:text-brand-400">数字探索者</span></h2>
+              <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+                欢迎回到您的私有数字主权空间。所有数据均已加密保存在浏览器内存与本地 IndexedDB 中。
+              </p>
+            </div>
+            <div class="flex items-center gap-3 relative z-10">
+              <button onclick="switchView('profile')" class="px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium hover:border-brand-500 transition flex items-center gap-2">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                <span>修改资料</span>
+              </button>
+              <button onclick="openAddTransactionModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/25 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                <span>记一笔账</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 便当盒 Bento Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            
+            <!-- Bento 1: 个人名片速览 (占用 1 列) -->
+            <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">个人档案</span>
+                  <button onclick="switchView('profile')" class="text-xs text-brand-500 hover:underline">查看全部</button>
+                </div>
+                <div class="flex items-center gap-3 mb-4">
+                  <img id="dash-avatar-img" src="" alt="Avatar" class="w-12 h-12 rounded-2xl object-cover bg-slate-300 dark:bg-slate-700 shadow-md">
+                  <div>
+                    <h3 id="dash-profile-name" class="font-bold text-sm">用户名称</h3>
+                    <p id="dash-profile-bio" class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">暂无签名</p>
+                  </div>
+                </div>
+                <div id="dash-profile-keyvalues" class="space-y-2 text-xs">
+                  <!-- 动态插入核心速览字段 -->
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                <span>隐私遮罩保护已开启</span>
+                <i data-lucide="shield" class="w-3.5 h-3.5 text-brand-500"></i>
+              </div>
+            </div>
+
+            <!-- Bento 2: 财务当月概览与预算 (占用 2 列) -->
+            <div class="glass-card rounded-2xl p-5 lg:col-span-2 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">本月财务态势</span>
+                  <button onclick="switchView('finance')" class="text-xs text-brand-500 hover:underline">财务中心</button>
+                </div>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                  <div class="p-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50">
+                    <p class="text-[11px] text-slate-400">本月支出</p>
+                    <p id="dash-month-expense" class="text-lg font-bold text-red-500 mt-1">¥0.00</p>
+                  </div>
+                  <div class="p-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50">
+                    <p class="text-[11px] text-slate-400">本月收入</p>
+                    <p id="dash-month-income" class="text-lg font-bold text-emerald-500 mt-1">¥0.00</p>
+                  </div>
+                  <div class="p-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50">
+                    <p class="text-[11px] text-slate-400">本月结余</p>
+                    <p id="dash-month-balance" class="text-lg font-bold text-slate-700 dark:text-slate-200 mt-1">¥0.00</p>
+                  </div>
+                </div>
+
+                <!-- 预算进度条 -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-slate-500">月度支出预算使用情况</span>
+                    <span id="dash-budget-text" class="font-mono text-slate-700 dark:text-slate-300">0% (¥0 / ¥0)</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                    <div id="dash-budget-bar" class="h-full bg-brand-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 待缴订阅倒计时微组件 -->
+              <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <p class="text-[11px] font-semibold text-slate-400 mb-2">近期周期扣款提醒：</p>
+                <div id="dash-upcoming-subs" class="flex flex-wrap gap-2">
+                  <!-- 动态插入扣款卡片 -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Bento 3: 常用快捷书签 (占用 1 列) -->
+            <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">常用高频书签</span>
+                  <button onclick="switchView('bookmarks')" class="text-xs text-brand-500 hover:underline">导航中心</button>
+                </div>
+                <div id="dash-quick-bookmarks" class="grid grid-cols-2 gap-2.5">
+                  <!-- 动态插入高频网站 -->
+                </div>
+              </div>
+              <button onclick="openAddBookmarkModal()" class="w-full mt-4 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:text-brand-500 hover:border-brand-500 text-xs font-medium transition flex items-center justify-center gap-1.5">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>新增常用网站</span>
+              </button>
+            </div>
+
+            <!-- Bento 4: 置顶核心备忘/知识库 (占用 2 列) -->
+            <div class="glass-card rounded-2xl p-5 md:col-span-2 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">置顶重要笔记</span>
+                  <button onclick="switchView('notes')" class="text-xs text-brand-500 hover:underline">全部备忘</button>
+                </div>
+                <div id="dash-pinned-notes" class="space-y-2.5">
+                  <!-- 动态插入置顶笔记 -->
+                </div>
+              </div>
+              <button onclick="openAddNoteModal()" class="w-full mt-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium transition flex items-center justify-center gap-1.5">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                <span>起草加密备忘</span>
+              </button>
+            </div>
+
+            <!-- Bento 5: 财务趋势图表预览 (占用 2 列) -->
+            <div class="glass-card rounded-2xl p-5 md:col-span-2 flex flex-col">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">近6个月收支趋势</span>
+                <span class="text-[11px] text-slate-400">自动同步分析</span>
+              </div>
+              <div class="flex-1 h-44 relative">
+                <canvas id="dash-finance-chart"></canvas>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- VIEW 2: 个人档案中心 (PROFILE & QUICK INFO) -->
+        <!-- ---------------------------------------------------- -->
+        <section id="view-profile" class="view-panel space-y-6 hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">个人信息档案中心</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">管理个人名片、快速存取常用证件、通讯录与关键敏感参数</p>
+            </div>
+            <button onclick="openAddProfileFieldModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/25 flex items-center gap-2 self-start">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>添加自定义字段</span>
+            </button>
+          </div>
+
+          <!-- 个人名片编辑区 -->
+          <div class="glass-card rounded-2xl p-6">
+            <h3 class="text-sm font-semibold mb-4 text-slate-400 uppercase tracking-wider">名片与身份状态</h3>
+            <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+              
+              <!-- 头像上传与压缩 -->
+              <div class="relative group">
+                <img id="profile-avatar-preview" src="" alt="Avatar" class="w-24 h-24 rounded-2xl object-cover bg-slate-200 dark:bg-slate-800 shadow-md border-2 border-brand-500/30">
+                <label class="absolute inset-0 rounded-2xl bg-slate-950/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition">
+                  <i data-lucide="camera" class="w-6 h-6 mb-1"></i>
+                  <span class="text-[10px]">更换头像</span>
+                  <input type="file" id="profile-avatar-input" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)">
+                </label>
+              </div>
+
+              <!-- 名片文本输入 -->
+              <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">昵称 / 姓名</label>
+                  <input type="text" id="profile-input-name" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">当前状态标识</label>
+                  <input type="text" id="profile-input-status" placeholder="例如：● 专注开发中 / 🌴 度假中" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-medium text-slate-500 mb-1">个人签名 / 愿景</label>
+                  <input type="text" id="profile-input-bio" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs focus:ring-2 focus:ring-brand-500">
+                </div>
+              </div>
+
+              <div class="self-end md:self-center">
+                <button onclick="saveProfileCardInfo()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/25 flex items-center gap-1.5">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>保存名片</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 动态 Key-Value 自由字段表格/卡片列表 -->
+          <div class="glass-card rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">自定义档案卡片 (支持敏感遮罩与一键复制)</h3>
+              <span class="text-xs text-slate-400">点击小眼睛可临时查看明文</span>
+            </div>
+
+            <div id="profile-fields-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              <!-- 动态插入字段卡片 -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- VIEW 3: 常用网站分类导航 (BOOKMARK HUB) -->
+        <!-- ---------------------------------------------------- -->
+        <section id="view-bookmarks" class="view-panel space-y-6 hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">常用网站分类导航</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">管理个人收藏站点，自动解析 Favicon 图标与快捷跳转</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="openManageCategoriesModal()" class="px-3.5 py-2 rounded-xl bg-slate-200/70 dark:bg-slate-800/70 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-medium transition flex items-center gap-1.5">
+                <i data-lucide="tags" class="w-3.5 h-3.5"></i>
+                <span>管理分类</span>
+              </button>
+              <button onclick="openAddBookmarkModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/25 flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>添加书签</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 分类标签过滤器 -->
+          <div id="bookmark-category-filters" class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <!-- 动态插入分类药丸按钮 -->
+          </div>
+
+          <!-- 书签网格容器 -->
+          <div id="bookmarks-grid-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            <!-- 动态插入书签卡片 -->
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- VIEW 4: 个人资料与加密备忘 (NOTES & VAULT) -->
+        <!-- ---------------------------------------------------- -->
+        <section id="view-notes" class="view-panel space-y-6 hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">加密资料库与备忘录</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">支持 Markdown 语法排版、置顶管理与图片附件存储</p>
+            </div>
+            <button onclick="openAddNoteModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/25 flex items-center gap-2 self-start">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>撰写新备忘</span>
+            </button>
+          </div>
+
+          <!-- 备忘检索与分类过滤 -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+              <input type="text" id="notes-search-input" oninput="renderNotesList()" placeholder="检索笔记标题、标签或正文内容..."
+                class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs focus:ring-2 focus:ring-brand-500">
+            </div>
+            <select id="notes-category-select" onchange="renderNotesList()" class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs focus:ring-2 focus:ring-brand-500">
+              <option value="ALL">全部分类</option>
+              <!-- 动态添加选项 -->
+            </select>
+          </div>
+
+          <!-- 备忘卡片瀑布流/网格 -->
+          <div id="notes-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- 动态插入备忘卡片 -->
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- VIEW 5: 个人财务管家 (FINANCE & BILLS) -->
+        <!-- ---------------------------------------------------- -->
+        <section id="view-finance" class="view-panel space-y-6 hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">个人账单与财务管家</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">记录收支明细、监控月度预算与周期性订阅自动提醒</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="openAddSubscriptionModal()" class="px-3.5 py-2 rounded-xl bg-slate-200/70 dark:bg-slate-800/70 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-medium transition flex items-center gap-1.5">
+                <i data-lucide="repeat" class="w-3.5 h-3.5"></i>
+                <span>新增订阅</span>
+              </button>
+              <button onclick="openAddTransactionModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/25 flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>记一笔</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 顶部总览统计指标卡 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="glass-card rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-400">本月支出</span>
+                <div class="w-7 h-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center">
+                  <i data-lucide="trending-down" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="fin-month-expense" class="text-2xl font-bold text-red-500">¥0.00</p>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-400">本月收入</span>
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <i data-lucide="trending-up" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="fin-month-income" class="text-2xl font-bold text-emerald-500">¥0.00</p>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-400">本月结余</span>
+                <div class="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-500 flex items-center justify-center">
+                  <i data-lucide="scale" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="fin-month-balance" class="text-2xl font-bold">¥0.00</p>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-400">月度预算控制</span>
+                <button onclick="promptEditBudget()" class="text-[11px] text-brand-500 hover:underline">设置</button>
+              </div>
+              <div class="flex items-baseline justify-between mb-1">
+                <span id="fin-budget-percent" class="text-lg font-bold">0%</span>
+                <span id="fin-budget-target" class="text-xs text-slate-400">限额: ¥0</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                <div id="fin-budget-bar" class="h-full bg-brand-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图表区：支出分布环形图 + 收支趋势折线/柱状图 -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="glass-card rounded-2xl p-5">
+              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">当月支出分类占比</h3>
+              <div class="h-56 relative flex items-center justify-center">
+                <canvas id="fin-category-pie-chart"></canvas>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">近半年收支走势对比</h3>
+              <div class="h-56 relative">
+                <canvas id="fin-trend-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- 周期性订阅与待缴账单组件 -->
+          <div class="glass-card rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold tracking-tight">周期性固定账单与服务订阅</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">自动根据当前日期计算距离下次扣费的天数并提示</p>
+              </div>
+              <button onclick="openAddSubscriptionModal()" class="text-xs text-brand-500 hover:underline flex items-center gap-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>新增</span>
+              </button>
+            </div>
+            <div id="fin-subscriptions-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <!-- 动态插入订阅卡片 -->
+            </div>
+          </div>
+
+          <!-- 账单明细列表与多维筛选 -->
+          <div class="glass-card rounded-2xl p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h3 class="text-sm font-semibold tracking-tight">账单流水明细</h3>
+              <div class="flex flex-wrap items-center gap-2">
+                <input type="month" id="fin-filter-month" onchange="renderFinanceTransactions()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                <select id="fin-filter-type" onchange="renderFinanceTransactions()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                  <option value="ALL">全部类型</option>
+                  <option value="EXPENSE">仅看支出</option>
+                  <option value="INCOME">仅看收入</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 流水表格 -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-400">
+                    <th class="py-2.5 px-3">日期</th>
+                    <th class="py-2.5 px-3">分类</th>
+                    <th class="py-2.5 px-3">支付方式</th>
+                    <th class="py-2.5 px-3">备注</th>
+                    <th class="py-2.5 px-3 text-right">金额</th>
+                    <th class="py-2.5 px-3 text-center">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="fin-transactions-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  <!-- 动态插入明细行 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- VIEW 6: 通用自定义模块视图 (CUSTOM MODULE VIEWER) -->
+        <!-- ---------------------------------------------------- -->
+        <section id="view-custom-module" class="view-panel space-y-6 hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <div id="custom-mod-icon" class="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center">
+                  <i data-lucide="box" class="w-4 h-4"></i>
+                </div>
+                <h2 id="custom-mod-title" class="text-xl font-bold tracking-tight">自定义模块</h2>
+              </div>
+              <p id="custom-mod-desc" class="text-xs text-slate-500 dark:text-slate-400 mt-1">动态字段与自定义结构化数据记录</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="promptDeleteCustomModule()" class="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-medium transition flex items-center gap-1.5">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>删除此模块</span>
+              </button>
+              <button onclick="openAddCustomRecordModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/25 flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>新增记录</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 自定义数据表格卡片 -->
+          <div class="glass-card rounded-2xl p-6">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr id="custom-mod-table-head" class="border-b border-slate-200 dark:border-slate-800 text-slate-400">
+                    <!-- 动态生成表头 -->
+                  </tr>
+                </thead>
+                <tbody id="custom-mod-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  <!-- 动态插入数据行 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------- -->
+        <!-- VIEW 7: 系统设置与数据主权 (SETTINGS & SYNC) -->
+        <!-- ---------------------------------------------------- -->
+        <section id="view-settings" class="view-panel space-y-6 hidden">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight">系统设置与数据主权</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">配置端到端加密、密码管理、跨设备 GitHub Gist 云同步与全量导出</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- 安全与主密码管理 -->
+            <div class="glass-card rounded-2xl p-6 space-y-4">
+              <div class="flex items-center gap-2.5 text-brand-500">
+                <i data-lucide="key-round" class="w-5 h-5"></i>
+                <h3 class="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-200">主控密码与锁屏安全</h3>
+              </div>
+              <p class="text-xs text-slate-500">修改主密码将使用新密码对内存数据重新进行 PBKDF2 + AES-GCM 加密，并同步覆盖本地与云端。</p>
+
+              <div class="space-y-3 pt-2">
+                <button onclick="openChangePasswordModal()" class="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-medium transition text-left px-4 flex items-center justify-between">
+                  <span>修改主控密码</span>
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                </button>
+
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">无操作自动锁定时间</label>
+                  <select id="settings-autolock-select" onchange="updateAutoLockSetting(event)" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                    <option value="5">5 分钟无操作自动锁定</option>
+                    <option value="15" selected>15 分钟无操作自动锁定 (推荐)</option>
+                    <option value="30">30 分钟无操作自动锁定</option>
+                    <option value="60">1 小时无操作自动锁定</option>
+                    <option value="0">从不自动锁定 (不建议)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- 云端跨设备同步 (GitHub Gist / REST Webhook) -->
+            <div class="glass-card rounded-2xl p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5 text-brand-500">
+                  <i data-lucide="cloud-sync" class="w-5 h-5"></i>
+                  <h3 class="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-200">跨设备云同步 (GitHub Gist)</h3>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500 font-mono">E2EE Payload</span>
+              </div>
+              <p class="text-xs text-slate-500">通过 GitHub 私有 Gist，在多台电脑、手机或平板之间安全同步加密数据包。云端仅存放密文，毫无泄密风险。</p>
+
+              <div class="space-y-3 pt-2">
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">GitHub Personal Access Token (含 gist 权限)</label>
+                  <input type="password" id="sync-gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">Gist ID (留空可点击下方一键自动创建)</label>
+                  <input type="text" id="sync-gist-id" placeholder="例如：7a8b9c..." class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                </div>
+                
+                <div class="flex flex-wrap gap-2 pt-1">
+                  <button onclick="saveSyncConfig()" class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-medium transition">
+                    保存配置
+                  </button>
+                  <button onclick="autoCreatePrivateGist()" class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-medium transition flex items-center gap-1">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>自动创建私有 Gist</span>
+                  </button>
+                  <button onclick="pushDataToGist()" class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition flex items-center gap-1">
+                    <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
+                    <span>推送加密数据 (Push)</span>
+                  </button>
+                  <button onclick="pullDataFromGist()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition flex items-center gap-1">
+                    <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
+                    <span>拉取加密数据 (Pull)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 数据主权与导入导出备份 -->
+            <div class="glass-card rounded-2xl p-6 space-y-4">
+              <div class="flex items-center gap-2.5 text-brand-500">
+                <i data-lucide="hard-drive-download" class="w-5 h-5"></i>
+                <h3 class="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-200">数据主权与离线备份</h3>
+              </div>
+              <p class="text-xs text-slate-500">支持全量数据的密态或明文离线导出，掌控属于您的绝对数字资产主权。</p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button onclick="exportEncryptedBackup()" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-brand-500 text-left transition">
+                  <div class="flex items-center gap-2 text-xs font-semibold mb-1">
+                    <i data-lucide="shield" class="w-4 h-4 text-brand-500"></i>
+                    <span>导出加密备份包</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">输出 .enc.json 文件，任何地方存储均万无一失。</p>
+                </button>
+
+                <button onclick="exportPlaintextBackup()" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 text-left transition">
+                  <div class="flex items-center gap-2 text-xs font-semibold mb-1 text-amber-500">
+                    <i data-lucide="file-code" class="w-4 h-4"></i>
+                    <span>导出明文 JSON</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">解密后的数据备份，仅建议存放在安全离线介质中。</p>
+                </button>
+              </div>
+
+              <div class="pt-2">
+                <label class="block text-xs font-medium text-slate-500 mb-1">从文件导入恢复</label>
+                <div class="flex gap-2">
+                  <input type="file" id="settings-restore-file" accept=".json" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-500/10 file:text-brand-500 hover:file:bg-brand-500/20">
+                  <button onclick="handleRestoreFromSettings()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shrink-0">
+                    执行恢复
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 个性化与系统偏好 -->
+            <div class="glass-card rounded-2xl p-6 space-y-4">
+              <div class="flex items-center gap-2.5 text-brand-500">
+                <i data-lucide="palette" class="w-5 h-5"></i>
+                <h3 class="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-200">系统外观与个性化</h3>
+              </div>
+              
+              <div class="space-y-3 pt-2">
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">数字中心名称 / 标题</label>
+                  <input type="text" id="settings-app-title" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">默认月度预算额度 (元)</label>
+                  <input type="number" id="settings-app-budget" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                </div>
+
+                <button onclick="saveAppearanceSettings()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/25">
+                  保存个性化设置
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- 移动端专属悬浮底部导航坞 (iOS 风格设计，单手拇指触达) -->
+    <nav id="mobile-bottom-nav" class="lg:hidden fixed bottom-3 left-3 right-3 z-30 glass-card rounded-2xl shadow-xl px-2 py-1.5 flex items-center justify-around border border-slate-200/80 dark:border-slate-800/80 mobile-nav-safe">
+      <button onclick="switchView('dashboard')" id="mob-nav-btn-dashboard" class="mob-nav-item flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-brand-600 dark:text-brand-400 font-bold transition text-[10px]">
+        <i data-lucide="layout-grid" class="w-5 h-5 mb-0.5"></i>
+        <span>总览</span>
+      </button>
+      <button onclick="switchView('profile')" id="mob-nav-btn-profile" class="mob-nav-item flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 dark:text-slate-400 transition text-[10px]">
+        <i data-lucide="user" class="w-5 h-5 mb-0.5"></i>
+        <span>档案</span>
+      </button>
+      <button onclick="switchView('bookmarks')" id="mob-nav-btn-bookmarks" class="mob-nav-item flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 dark:text-slate-400 transition text-[10px]">
+        <i data-lucide="bookmark" class="w-5 h-5 mb-0.5"></i>
+        <span>书签</span>
+      </button>
+      <button onclick="switchView('notes')" id="mob-nav-btn-notes" class="mob-nav-item flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 dark:text-slate-400 transition text-[10px]">
+        <i data-lucide="file-text" class="w-5 h-5 mb-0.5"></i>
+        <span>备忘</span>
+      </button>
+      <button onclick="switchView('finance')" id="mob-nav-btn-finance" class="mob-nav-item flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 dark:text-slate-400 transition text-[10px]">
+        <i data-lucide="wallet" class="w-5 h-5 mb-0.5"></i>
+        <span>财务</span>
+      </button>
+      <button onclick="toggleMobileSidebar()" class="mob-nav-item flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 dark:text-slate-400 transition text-[10px]" title="展开侧边栏与更多模块">
+        <i data-lucide="menu" class="w-5 h-5 mb-0.5"></i>
+        <span>更多</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- [GLOBAL MODALS] 全局模态对话框容器 -->
+  <!-- ======================================================== -->
+  <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md hidden">
+    <div id="modal-content" class="w-full max-w-lg glass-card rounded-2xl shadow-2xl p-6 border border-slate-700/50 max-h-[90vh] overflow-y-auto">
+      <!-- 动态插入模态对话框内容 -->
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- [JAVASCRIPT ENGINE] 核心引擎与业务逻辑 -->
+  <!-- ======================================================== -->
+  <script>
+    /**
+     * [MODULE: CONSTANTS & DEMO DATA]
+     * 初始演示数据集：在用户首次进入系统并设置完主控密码后自动灌入
+     */
+    const INITIAL_DEMO_DATA = {
+      meta: {
+        title: "Personal OS & Private Hub",
+        theme: "dark",
+        autoLockMinutes: 15,
+        defaultBudget: 8000,
+        version: "2.0.0",
+        updatedAt: Date.now()
+      },
+      profile: {
+        nickname: "Alex Chen",
+        bio: "全栈开发者 / 数字游民 / 密码学与自由软件倡导者",
+        status: "● 专注开发新系统",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+        fields: [
+          { id: "f1", label: "常用邮箱", value: "alex.dev@proton.me", isSecret: false, category: "联系方式" },
+          { id: "f2", label: "手机号码", value: "+86 188-8888-6666", isSecret: true, category: "联系方式" },
+          { id: "f3", label: "海外服务器 IP", value: "198.51.100.42 (Tokyo节点)", isSecret: true, category: "服务器" },
+          { id: "f4", label: "常住地址", value: "北京市朝阳区望京SOHO T3", isSecret: true, category: "生活" },
+          { id: "f5", label: "公积金账号", value: "110108199500000000", isSecret: true, category: "政务" }
+        ]
+      },
+      categories: [
+        { id: "c1", name: "🚀 工作生产力", icon: "briefcase" },
+        { id: "c2", name: "🤖 AI 与智能工具", icon: "bot" },
+        { id: "c3", name: "🎨 设计与灵感", icon: "palette" },
+        { id: "c4", name: "🎬 影音与娱乐", icon: "film" },
+        { id: "c5", name: "🏦 财务与政务", icon: "landmark" }
+      ],
+      bookmarks: [
+        { id: "b1", title: "GitHub", url: "https://github.com", categoryId: "c1", tags: ["代码", "开源", "日常"] },
+        { id: "b2", title: "ChatGPT", url: "https://chatgpt.com", categoryId: "c2", tags: ["LLM", "生产力"] },
+        { id: "b3", title: "Claude AI", url: "https://claude.ai", categoryId: "c2", tags: ["AI", "长文"] },
+        { id: "b4", title: "Dribbble", url: "https://dribbble.com", categoryId: "c3", tags: ["设计", "灵感"] },
+        { id: "b5", title: "Bilibili", url: "https://www.bilibili.com", categoryId: "c4", tags: ["视频", "学习"] },
+        { id: "b6", title: "Notion", url: "https://notion.so", categoryId: "c1", tags: ["笔记", "知识库"] }
+      ],
+      notes: [
+        {
+          id: "n1",
+          title: "🔐 关于本私有中心的安全与端到端加密架构",
+          content: "### 核心安全理念\n- 采用浏览器原生 **Web Crypto API**\n- **PBKDF2** 100,000次迭代派生密钥\n- **AES-256-GCM** 对称加密数据包\n- 密码不上传、不落盘，全密态持久化存储于 IndexedDB。\n- 云端 Gist 仅传输密文。",
+          category: "安全架构",
+          isPinned: true,
+          updatedAt: Date.now() - 3600000 * 2
+        },
+        {
+          id: "n2",
+          title: "💡 2026 年技术学习路线与重点项目",
+          content: "- [x] 深入 Web Crypto API 与 Passkey 规范\n- [ ] 探索轻量端侧小语言模型 WebGPU 部署\n- [ ] 持续打磨个人全生命周期数字资产管理系统",
+          category: "年度目标",
+          isPinned: true,
+          updatedAt: Date.now() - 86400000
+        },
+        {
+          id: "n3",
+          title: "🖥️ 家中 NAS 与边缘节点端口映射清单",
+          content: "| 服务 | 端口 | 协议 |\n| --- | --- | --- |\n| Vaultwarden | 8080 | HTTPS |\n| Jellyfin | 8096 | HTTP |\n| AdGuard Home | 3000 | TCP |",
+          category: "网络设施",
+          isPinned: false,
+          updatedAt: Date.now() - 86400000 * 3
+        }
+      ],
+      finance: {
+        budget: 8000,
+        transactions: [
+          { id: "t1", type: "EXPENSE", amount: 2800, category: "房租物业", date: getRelativeDate(0), paymentMethod: "支付宝", note: "本月整租公寓租金" },
+          { id: "t2", type: "EXPENSE", amount: 320, category: "餐饮美食", date: getRelativeDate(-1), paymentMethod: "微信支付", note: "周末超市采购与食材" },
+          { id: "t3", type: "EXPENSE", amount: 158, category: "数码科技", date: getRelativeDate(-3), paymentMethod: "信用卡", note: "云服务器月付续费" },
+          { id: "t4", type: "INCOME", amount: 25000, category: "薪资报酬", date: getRelativeDate(-5), paymentMethod: "银行转账", note: "本月工作税后报酬" },
+          { id: "t5", type: "EXPENSE", amount: 98, category: "娱乐休闲", date: getRelativeDate(-7), paymentMethod: "微信支付", note: "流媒体会员充值" }
+        ],
+        subscriptions: [
+          { id: "s1", name: "房屋租金", amount: 2800, cycle: "月", dueDay: 25, category: "居住", note: "每月25号房东扣缴" },
+          { id: "s2", name: "家庭千兆宽带", amount: 120, cycle: "月", dueDay: 1, category: "网络", note: "中国电信自动扣款" },
+          { id: "s3", name: "iCloud 2TB 方案", amount: 68, cycle: "月", dueDay: 18, category: "数码", note: "Apple ID 绑定微信支付" },
+          { id: "s4", name: "ChatGPT Plus", amount: 145, cycle: "月", dueDay: 12, category: "AI服务", note: "国外虚拟卡订阅" }
+        ]
+      },
+      customModules: [
+        {
+          id: "mod-servers",
+          name: "服务器与节点资产",
+          icon: "server",
+          description: "记录云服务器主机、IP、到期日与费用",
+          schema: [
+            { key: "name", label: "主机名称", type: "text" },
+            { key: "ip", label: "公网 IP", type: "secret" },
+            { key: "provider", label: "云服务商", type: "text" },
+            { key: "expireDate", label: "到期时间", type: "date" },
+            { key: "annualCost", label: "年付费用(¥)", type: "number" }
+          ],
+          records: [
+            { id: "r1", name: "东京生产网关", ip: "192.0.2.1", provider: "Linode", expireDate: "2027-06-15", annualCost: 650 },
+            { id: "r2", name: "新加坡备用CDN", ip: "198.51.100.8", provider: "Cloudflare", expireDate: "2028-01-01", annualCost: 0 }
+          ]
+        }
+      ],
+      sync: {
+        ghToken: "",
+        gistId: "",
+        lastSyncTime: 0
+      }
+    };
+
+    function getRelativeDate(offsetDays) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      return d.toISOString().split('T')[0];
+    }
+
+    /**
+     * [MODULE: APP STATE & REACTIVE CONTROLLER]
+     * 运行态数据存储：解密后驻留内存，锁定立即清除
+     */
+    const AppState = {
+      isUnlocked: false,
+      masterKey: null,      // CryptoKey
+      data: null,           // 解密后的完整数据对象
+      activeView: "dashboard",
+      autoLockTimer: null,
+      autoLockRemaining: 0,
+      charts: {
+        dashFinance: null,
+        finPie: null,
+        finTrend: null
+      }
+    };
+
+    /**
+     * [MODULE: CRYPTO ENGINE - 原生 WEB CRYPTO API]
+     * PBKDF2 (100,000次迭代) + AES-256-GCM 零知识端到端加密
+     */
+    const CryptoEngine = {
+      // 从主密码与盐值派生 AES-GCM 密钥
+      async deriveKey(password, salt) {
+        const enc = new TextEncoder();
+        const baseKey = await window.crypto.subtle.importKey(
+          "raw",
+          enc.encode(password),
+          "PBKDF2",
+          false,
+          ["deriveKey"]
+        );
+        return await window.crypto.subtle.deriveKey(
+          {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 100000,
+            hash: "SHA-256"
+          },
+          baseKey,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["encrypt", "decrypt"]
+        );
+      },
+
+      // 加密明文对象
+      async encryptData(dataObj, password) {
+        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const key = await this.deriveKey(password, salt);
+
+        const enc = new TextEncoder();
+        const encodedData = enc.encode(JSON.stringify(dataObj));
+
+        const ciphertextBuffer = await window.crypto.subtle.encrypt(
+          { name: "AES-GCM", iv: iv },
+          key,
+          encodedData
+        );
+
+        return {
+          version: 1,
+          algorithm: "AES-256-GCM",
+          iterations: 100000,
+          salt: this.buf2hex(salt),
+          iv: this.buf2hex(iv),
+          ciphertext: this.buf2hex(ciphertextBuffer),
+          updatedAt: Date.now()
+        };
+      },
+
+      // 解密密文包
+      async decryptData(encryptedPayload, password) {
+        try {
+          const salt = this.hex2buf(encryptedPayload.salt);
+          const iv = this.hex2buf(encryptedPayload.iv);
+          const ciphertext = this.hex2buf(encryptedPayload.ciphertext);
+
+          const key = await this.deriveKey(password, salt);
+          const decryptedBuffer = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            ciphertext
+          );
+
+          const dec = new TextDecoder();
+          return JSON.parse(dec.decode(decryptedBuffer));
+        } catch (err) {
+          throw new Error("主密码不正确或数据已被篡改");
+        }
+      },
+
+      buf2hex(buffer) {
+        return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+      },
+
+      hex2buf(hexString) {
+        const bytes = new Uint8Array(Math.ceil(hexString.length / 2));
+        for (let i = 0; i < bytes.length; i++) {
+          bytes[i] = parseInt(hexString.substr(i * 2, 2), 16);
+        }
+        return bytes;
+      }
+    };
+
+    /**
+     * [MODULE: SECURITY & COOLDOWN CONTROLLER]
+     * 防密码爆破机制：记录连续输错次数并实施梯度冷却
+     */
+    const SecurityController = {
+      MAX_FAILED: 5,
+      cooldownTimer: null,
+
+      getFailedCount() {
+        return parseInt(localStorage.getItem("ph_failed_pwd_attempts") || "0", 10);
+      },
+
+      recordFailedAttempt() {
+        const count = this.getFailedCount() + 1;
+        localStorage.setItem("ph_failed_pwd_attempts", count.toString());
+
+        if (count >= 3) {
+          const cooldownSec = count >= 5 ? 60 : 15;
+          const lockUntil = Date.now() + cooldownSec * 1000;
+          localStorage.setItem("ph_lockout_until", lockUntil.toString());
+          this.checkCooldown();
+        }
+        return count;
+      },
+
+      resetFailedAttempts() {
+        localStorage.removeItem("ph_failed_pwd_attempts");
+        localStorage.removeItem("ph_lockout_until");
+        const badge = document.getElementById("cooldown-timer-badge");
+        if (badge) badge.classList.add("hidden");
+        const unlockBtn = document.getElementById("unlock-btn");
+        if (unlockBtn) unlockBtn.disabled = false;
+      },
+
+      checkCooldown() {
+        const lockoutUntil = parseInt(localStorage.getItem("ph_lockout_until") || "0", 10);
+        const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
+        const badge = document.getElementById("cooldown-timer-badge");
+        const unlockBtn = document.getElementById("unlock-btn");
+        const unlockInput = document.getElementById("unlock-pwd");
+
+        if (remaining > 0) {
+          if (unlockBtn) unlockBtn.disabled = true;
+          if (unlockInput) unlockInput.disabled = true;
+          if (badge) {
+            badge.classList.remove("hidden");
+            badge.textContent = `⚠️ 密码连续输错次数过多，安全锁定中... 剩余 ${remaining} 秒`;
+          }
+
+          if (!this.cooldownTimer) {
+            this.cooldownTimer = setInterval(() => {
+              this.checkCooldown();
+            }, 1000);
+          }
+          return true;
+        } else {
+          if (this.cooldownTimer) {
+            clearInterval(this.cooldownTimer);
+            this.cooldownTimer = null;
+          }
+          if (badge) badge.classList.add("hidden");
+          if (unlockBtn) unlockBtn.disabled = false;
+          if (unlockInput) unlockInput.disabled = false;
+          return false;
+        }
+      }
+    };
+
+    /**
+     * [MODULE: STORAGE & SYNC]
+     * IndexedDB 本地持久化与 GitHub Gist 跨设备密态同步
+     */
+    const StorageService = {
+      DB_NAME: "PersonalHubDB",
+      STORE_NAME: "encrypted_store",
+      KEY_NAME: "vault_payload",
+
+      openDB() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.DB_NAME, 1);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+              db.createObjectStore(this.STORE_NAME);
+            }
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      },
+
+      async getEncryptedPayload() {
+        const db = await this.openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.STORE_NAME, "readonly");
+          const store = tx.objectStore(this.STORE_NAME);
+          const req = store.get(this.KEY_NAME);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      },
+
+      async saveEncryptedPayload(payload) {
+        const db = await this.openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.STORE_NAME, "readwrite");
+          const store = tx.objectStore(this.STORE_NAME);
+          const req = store.put(payload, this.KEY_NAME);
+          req.onsuccess = () => resolve(true);
+          req.onerror = () => reject(req.error);
+        });
+      },
+
+      async clearAllLocalData() {
+        const db = await this.openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.STORE_NAME, "readwrite");
+          const store = tx.objectStore(this.STORE_NAME);
+          const req = store.clear();
+          req.onsuccess = () => resolve(true);
+          req.onerror = () => reject(req.error);
+        });
+      }
+    };
+
+    /**
+     * 自动保存数据至 IndexedDB
+     */
+    async function commitDataChange(showToastMsg = "数据已安全加密持久化") {
+      if (!AppState.data || !AppState.masterPassword) return;
+      try {
+        AppState.data.meta.updatedAt = Date.now();
+        const encrypted = await CryptoEngine.encryptData(AppState.data, AppState.masterPassword);
+        await StorageService.saveEncryptedPayload(encrypted);
+        if (showToastMsg) {
+          showToast(showToastMsg, "success");
+        }
+      } catch (err) {
+        console.error("保存加密数据失败:", err);
+        showToast("保存加密数据时发生错误", "error");
+      }
+    }
+
+    /**
+     * [MODULE: UI HELPERS & TOAST]
+     */
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toast-container");
+      if (!container) return;
+
+      const toast = document.createElement("div");
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs font-medium transition-all duration-300 transform translate-y-2 opacity-0 glass-card`;
+
+      let icon = "info";
+      let colorClass = "text-brand-500 border-brand-500/20";
+      if (type === "success") {
+        icon = "check-circle";
+        colorClass = "text-emerald-500 border-emerald-500/20";
+      } else if (type === "error") {
+        icon = "alert-circle";
+        colorClass = "text-red-500 border-red-500/20";
+      } else if (type === "warning") {
+        icon = "alert-triangle";
+        colorClass = "text-amber-500 border-amber-500/20";
+      }
+
+      toast.classList.add(...colorClass.split(" "));
+      toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      requestAnimationFrame(() => {
+        toast.classList.remove("translate-y-2", "opacity-0");
+      });
+
+      setTimeout(() => {
+        toast.classList.add("translate-y-2", "opacity-0");
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function togglePasswordVisibility(inputId) {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.type = input.type === "password" ? "text" : "password";
+      }
+    }
+
+    function copyToClipboard(text, label = "内容") {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(`${label} 已复制到剪贴板`, "success");
+      }).catch(() => {
+        showToast("复制失败，请手动选择复制", "error");
+      });
+    }
+
+    // Canvas 图片压缩工具
+    function compressImageFile(file, maxWidth = 300, quality = 0.8) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", quality));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /**
+     * [MODULE: MODAL SYSTEM]
+     */
+    function openModal(contentHtml) {
+      const container = document.getElementById("modal-container");
+      const content = document.getElementById("modal-content");
+      content.innerHTML = contentHtml;
+      container.classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function closeModal() {
+      const container = document.getElementById("modal-container");
+      container.classList.add("hidden");
+    }
+
+    /**
+     * [MODULE: MOBILE CONNECT & PWA QRCODE]
+     * 手机移动端扫码互联与网址配置
+     */
+    function openMobileConnectModal() {
+      // 智能判断当前所在地址
+      let currentOriginUrl = window.location.href;
+      const isFileProtocol = window.location.protocol === 'file:';
+      
+      // 预设已配置上线的 GitHub Pages 全球公网安全 HTTPS 地址
+      const GITHUB_PAGES_URL = "https://f4ntastikarl.github.io/personal-hub/";
+      const LOCAL_LAN_URL = "http://192.168.0.192:8000";
+
+      let initialTarget = isFileProtocol ? GITHUB_PAGES_URL : currentOriginUrl;
+
+      openModal(`
+        <div class="space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+                <i data-lucide="smartphone" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold tracking-tight">手机移动端访问 & PWA 互联</h3>
+                <p class="text-[11px] text-slate-400">使用手机相机或微信扫码，随时随地安全直达</p>
+              </div>
+            </div>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- 模式切换选项卡 -->
+          <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 text-xs">
+            <button type="button" id="tab-cloud-url" onclick="switchQrCodeTarget('${GITHUB_PAGES_URL}', 'cloud')" 
+              class="py-1.5 rounded-lg font-semibold transition text-center bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm">
+              🌐 公网 HTTPS 访问 (推荐)
+            </button>
+            <button type="button" id="tab-lan-url" onclick="switchQrCodeTarget('${LOCAL_LAN_URL}', 'lan')" 
+              class="py-1.5 rounded-lg font-medium transition text-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+              📶 本地局域网 Wi-Fi
+            </button>
+          </div>
+
+          <!-- 二维码展示容器 -->
+          <div class="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50">
+            <div class="p-3 rounded-2xl bg-white shadow-lg border border-slate-200/60 relative group">
+              <canvas id="mobile-qr-canvas" class="w-44 h-44 rounded-xl"></canvas>
+            </div>
+            
+            <p id="qr-target-desc" class="text-xs text-slate-500 dark:text-slate-400 mt-3 text-center font-mono break-all max-w-xs">
+              ${initialTarget}
+            </p>
+
+            <div class="flex items-center gap-2 mt-3">
+              <button onclick="copyToClipboard(document.getElementById('qr-target-desc').textContent.trim(), '访问网址')" class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium transition shadow-md shadow-brand-500/20 flex items-center gap-1.5">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span>复制网址</span>
+              </button>
+              <a id="qr-target-link" href="${initialTarget}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-medium transition flex items-center gap-1.5">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>新标签打开</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- 手机端添加到主屏幕提示 (PWA 原生体验) -->
+          <div class="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
+            <div class="flex items-center gap-1.5 font-semibold text-brand-600 dark:text-brand-400">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>手机端独享原生 App 体验 (PWA)：</span>
+            </div>
+            <ul class="list-disc list-inside text-[11px] text-slate-500 dark:text-slate-400 space-y-1 pl-1">
+              <li><strong class="text-slate-700 dark:text-slate-200">iOS (iPhone Safari)</strong>：点击底部“分享”图标 ➔ 找到并点击“添加到主屏幕”。</li>
+              <li><strong class="text-slate-700 dark:text-slate-200">Android (Chrome/Edge)</strong>：点击右上角菜单 ➔ 选择“安装应用”或“添加到主屏幕”。</li>
+              <li>安装后直接从手机桌面图标启动，拥有全屏无地址栏沉浸感与离线极速秒开！</li>
+            </ul>
+          </div>
+
+          <!-- 安全提示说明 -->
+          <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 text-[11px] text-slate-400 flex items-start gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i>
+            <span>现代手机系统规定 Web Crypto 加密接口必须在 HTTPS 安全上下文中运行。GitHub Pages 已默认部署免费全球 SSL 证书，数据仅在手机端本地解密，绝不外泄。</span>
+          </div>
+        </div>
+      `);
+
+      renderQrCodeCanvas(initialTarget);
+    }
+
+    function switchQrCodeTarget(targetUrl, tabType) {
+      const tabCloud = document.getElementById("tab-cloud-url");
+      const tabLan = document.getElementById("tab-lan-url");
+      const desc = document.getElementById("qr-target-desc");
+      const link = document.getElementById("qr-target-link");
+
+      if (tabType === 'cloud') {
+        tabCloud.className = "py-1.5 rounded-lg font-semibold transition text-center bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm";
+        tabLan.className = "py-1.5 rounded-lg font-medium transition text-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300";
+      } else {
+        tabLan.className = "py-1.5 rounded-lg font-semibold transition text-center bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm";
+        tabCloud.className = "py-1.5 rounded-lg font-medium transition text-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300";
+      }
+
+      if (desc) desc.textContent = targetUrl;
+      if (link) link.href = targetUrl;
+      renderQrCodeCanvas(targetUrl);
+    }
+
+    function renderQrCodeCanvas(text) {
+      const canvas = document.getElementById("mobile-qr-canvas");
+      if (!canvas) return;
+
+      if (window.QRCode && typeof window.QRCode.toCanvas === 'function') {
+        QRCode.toCanvas(canvas, text, {
+          width: 176,
+          margin: 1,
+          color: {
+            dark: '#0f172a',
+            light: '#ffffff'
+          }
+        }, function (error) {
+          if (error) console.error("生成二维码失败:", error);
+        });
+      }
+    }
+
+    /**
+     * [MODULE: APP ROUTER & VIEW SWITCHER]
+     */
+    function switchView(viewName) {
+      AppState.activeView = viewName;
+
+      // 切换视图面板
+      document.querySelectorAll(".view-panel").forEach(panel => {
+        panel.classList.add("hidden");
+      });
+      const activePanel = document.getElementById(`view-${viewName}`);
+      if (activePanel) {
+        activePanel.classList.remove("hidden");
+      }
+
+      // 切换侧边栏导航高亮
+      document.querySelectorAll(".nav-item").forEach(item => {
+        item.classList.remove("bg-brand-500/10", "text-brand-600", "dark:text-brand-400", "font-bold");
+      });
+      const activeNavBtn = document.getElementById(`nav-btn-${viewName}`);
+      if (activeNavBtn) {
+        activeNavBtn.classList.add("bg-brand-500/10", "text-brand-600", "dark:text-brand-400", "font-bold");
+      }
+
+      // 同步切换移动端底部导航高亮
+      document.querySelectorAll(".mob-nav-item").forEach(item => {
+        item.classList.remove("text-brand-600", "dark:text-brand-400", "font-bold");
+        item.classList.add("text-slate-500", "dark:text-slate-400");
+      });
+      const activeMobBtn = document.getElementById(`mob-nav-btn-${viewName}`);
+      if (activeMobBtn) {
+        activeMobBtn.classList.remove("text-slate-500", "dark:text-slate-400");
+        activeMobBtn.classList.add("text-brand-600", "dark:text-brand-400", "font-bold");
+      }
+
+      // 关闭移动端侧边栏
+      const sidebar = document.getElementById("sidebar-nav");
+      const backdrop = document.getElementById("sidebar-backdrop");
+      if (sidebar && !sidebar.classList.contains("-translate-x-full")) {
+        sidebar.classList.add("-translate-x-full");
+        backdrop.classList.add("hidden");
+      }
+
+      // 刷新对应模块的数据展示
+      refreshCurrentView(viewName);
+    }
+
+    function refreshCurrentView(viewName) {
+      if (!AppState.data) return;
+      if (viewName === "dashboard") {
+        renderDashboard();
+      } else if (viewName === "profile") {
+        renderProfileView();
+      } else if (viewName === "bookmarks") {
+        renderBookmarksView();
+      } else if (viewName === "notes") {
+        renderNotesList();
+      } else if (viewName === "finance") {
+        renderFinanceView();
+      } else if (viewName === "settings") {
+        renderSettingsView();
+      }
+      lucide.createIcons();
+    }
+
+    /**
+     * [MODULE: AUTO-LOCK TIMER CONTROLLER]
+     */
+    function resetAutoLockTimer() {
+      if (!AppState.isUnlocked || !AppState.data) return;
+      const minutes = AppState.data.meta.autoLockMinutes || 15;
+      if (minutes <= 0) {
+        document.getElementById("autolock-indicator").classList.add("hidden");
+        return;
+      }
+
+      document.getElementById("autolock-indicator").classList.remove("hidden");
+      AppState.autoLockRemaining = minutes * 60;
+
+      if (AppState.autoLockTimer) {
+        clearInterval(AppState.autoLockTimer);
+      }
+
+      AppState.autoLockTimer = setInterval(() => {
+        AppState.autoLockRemaining--;
+        if (AppState.autoLockRemaining <= 0) {
+          clearInterval(AppState.autoLockTimer);
+          lockVault();
+          showToast("长时间未操作，系统已自动锁定保护数据", "warning");
+        } else {
+          const mins = Math.floor(AppState.autoLockRemaining / 60);
+          const secs = AppState.autoLockRemaining % 60;
+          const display = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+          const el = document.getElementById("autolock-countdown");
+          if (el) el.textContent = display;
+        }
+      }, 1000);
+    }
+
+    // 监听用户活跃事件
+    ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(evt => {
+      window.addEventListener(evt, () => {
+        if (AppState.isUnlocked) {
+          const minutes = AppState.data?.meta?.autoLockMinutes || 15;
+          AppState.autoLockRemaining = minutes * 60;
+        }
+      }, { passive: true });
+    });
+
+    /**
+     * 锁定系统：彻底清除内存中的明文数据与解密密钥
+     */
+    function lockVault() {
+      AppState.isUnlocked = false;
+      AppState.data = null;
+      AppState.masterPassword = null;
+      if (AppState.autoLockTimer) clearInterval(AppState.autoLockTimer);
+
+      // 销毁图表
+      Object.keys(AppState.charts).forEach(key => {
+        if (AppState.charts[key]) {
+          AppState.charts[key].destroy();
+          AppState.charts[key] = null;
+        }
+      });
+
+      document.getElementById("app-shell").classList.add("hidden");
+      document.getElementById("auth-screen").classList.remove("hidden");
+      document.getElementById("unlock-panel").classList.remove("hidden");
+      document.getElementById("onboarding-panel").classList.add("hidden");
+      document.getElementById("unlock-pwd").value = "";
+
+      SecurityController.checkCooldown();
+      lucide.createIcons();
+    }
+
+    /**
+     * 解锁成功后的初始化
+     */
+    function onUnlockSuccess(decryptedData, masterPassword) {
+      AppState.data = decryptedData;
+      AppState.masterPassword = masterPassword;
+      AppState.isUnlocked = true;
+      SecurityController.resetFailedAttempts();
+
+      document.getElementById("auth-screen").classList.add("hidden");
+      document.getElementById("app-shell").classList.remove("hidden");
+
+      // 应用个性化配置
+      applyMetaSettings();
+      renderCustomModulesNav();
+      switchView("dashboard");
+      resetAutoLockTimer();
+      showToast("已成功通过端到端解密，欢迎回来", "success");
+    }
+
+    function applyMetaSettings() {
+      if (!AppState.data) return;
+      const meta = AppState.data.meta;
+      document.title = meta.title || "个人私有数字中心";
+      document.getElementById("app-title-display").textContent = meta.title || "Personal OS";
+
+      // 头像与状态
+      const avatarEl = document.getElementById("sidebar-avatar-img");
+      const nameEl = document.getElementById("sidebar-nickname-display");
+      const statusEl = document.getElementById("sidebar-status-display");
+
+      if (avatarEl) avatarEl.src = AppState.data.profile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200";
+      if (nameEl) nameEl.textContent = AppState.data.profile.nickname || "使用者";
+      if (statusEl) statusEl.textContent = AppState.data.profile.status || "● 在线";
+
+      // 检查主题
+      if (meta.theme === "dark" || (!meta.theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      updateThemeIcon();
+    }
+
+    /**
+     * [MODULE: DASHBOARD RENDERING]
+     */
+    function renderDashboard() {
+      if (!AppState.data) return;
+      const data = AppState.data;
+
+      // 1. 问候语与名片卡
+      document.getElementById("dash-greeting-name").textContent = data.profile.nickname || "朋友";
+      document.getElementById("dash-profile-name").textContent = data.profile.nickname || "未设置昵称";
+      document.getElementById("dash-profile-bio").textContent = data.profile.bio || "点击右侧修改资料完善个人签名";
+      document.getElementById("dash-avatar-img").src = data.profile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200";
+
+      // 渲染名片速览 Key-Values (最多前3个)
+      const kvContainer = document.getElementById("dash-profile-keyvalues");
+      kvContainer.innerHTML = "";
+      const topFields = data.profile.fields.slice(0, 3);
+      topFields.forEach(f => {
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between p-2 rounded-lg bg-slate-100/50 dark:bg-slate-900/50";
+        row.innerHTML = `
+          <span class="text-slate-400">${f.label}:</span>
+          <span class="font-mono text-slate-700 dark:text-slate-300 ${f.isSecret ? 'privacy-blur' : ''}">${f.value}</span>
+        `;
+        kvContainer.appendChild(row);
+      });
+
+      // 2. 本月财务
+      const now = new Date();
+      const currentMonthPrefix = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+      
+      let monthExpense = 0;
+      let monthIncome = 0;
+      data.finance.transactions.forEach(t => {
+        if (t.date.startsWith(currentMonthPrefix)) {
+          if (t.type === "EXPENSE") monthExpense += Number(t.amount);
+          if (t.type === "INCOME") monthIncome += Number(t.amount);
+        }
+      });
+      const monthBalance = monthIncome - monthExpense;
+
+      document.getElementById("dash-month-expense").textContent = `¥${monthExpense.toFixed(2)}`;
+      document.getElementById("dash-month-income").textContent = `¥${monthIncome.toFixed(2)}`;
+      document.getElementById("dash-month-balance").textContent = `¥${monthBalance.toFixed(2)}`;
+
+      // 预算条
+      const budget = data.finance.budget || 8000;
+      const budgetPercent = Math.min(Math.round((monthExpense / budget) * 100), 100);
+      document.getElementById("dash-budget-text").textContent = `${budgetPercent}% (¥${monthExpense} / ¥${budget})`;
+      const budgetBar = document.getElementById("dash-budget-bar");
+      budgetBar.style.width = `${budgetPercent}%`;
+      if (budgetPercent > 90) {
+        budgetBar.className = "h-full bg-red-500 rounded-full transition-all duration-500";
+      } else if (budgetPercent > 70) {
+        budgetBar.className = "h-full bg-amber-500 rounded-full transition-all duration-500";
+      } else {
+        budgetBar.className = "h-full bg-brand-500 rounded-full transition-all duration-500";
+      }
+
+      // 近期待缴订阅卡片
+      const subsContainer = document.getElementById("dash-upcoming-subs");
+      subsContainer.innerHTML = "";
+      const currentDay = now.getDate();
+      data.finance.subscriptions.slice(0, 3).forEach(sub => {
+        let diff = sub.dueDay - currentDay;
+        if (diff < 0) diff += 30; // 粗略估算下次
+        const badge = document.createElement("div");
+        badge.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]";
+        badge.innerHTML = `
+          <span class="font-medium">${sub.name}</span>
+          <span class="text-slate-400">¥${sub.amount}</span>
+          <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${diff <= 3 ? 'bg-red-500/20 text-red-500' : 'bg-brand-500/20 text-brand-500'}">${diff === 0 ? '今天扣费' : diff + '天后'}</span>
+        `;
+        subsContainer.appendChild(badge);
+      });
+
+      // 3. 高频常用书签 (前4个)
+      const bmContainer = document.getElementById("dash-quick-bookmarks");
+      bmContainer.innerHTML = "";
+      data.bookmarks.slice(0, 4).forEach(bm => {
+        const domain = getDomain(bm.url);
+        const card = document.createElement("a");
+        card.href = bm.url;
+        card.target = "_blank";
+        card.rel = "noopener noreferrer";
+        card.className = "p-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-900/70 border border-slate-200/50 dark:border-slate-800/50 hover:border-brand-500 transition flex items-center gap-2 group";
+        card.innerHTML = `
+          <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" onerror="this.src='https://api.iconify.design/lucide:globe.svg'" alt="" class="w-6 h-6 rounded-lg shrink-0">
+          <div class="min-w-0">
+            <p class="text-xs font-semibold truncate group-hover:text-brand-500">${bm.title}</p>
+            <p class="text-[10px] text-slate-400 truncate">${domain}</p>
+          </div>
+        `;
+        bmContainer.appendChild(card);
+      });
+
+      // 4. 置顶核心笔记
+      const notesContainer = document.getElementById("dash-pinned-notes");
+      notesContainer.innerHTML = "";
+      const pinned = data.notes.filter(n => n.isPinned).slice(0, 2);
+      pinned.forEach(note => {
+        const item = document.createElement("div");
+        item.className = "p-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50 hover:border-brand-500/50 transition cursor-pointer";
+        item.onclick = () => {
+          switchView("notes");
+        };
+        item.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold truncate flex items-center gap-1.5">
+              <i data-lucide="pin" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+              ${note.title}
+            </span>
+            <span class="text-[10px] text-slate-400">${new Date(note.updatedAt).toLocaleDateString()}</span>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">${note.content.replace(/#|\*|`/g, '')}</p>
+        `;
+        notesContainer.appendChild(item);
+      });
+
+      // 5. 渲染控制台财务趋势小图表
+      renderDashFinanceChart();
+    }
+
+    function renderDashFinanceChart() {
+      const ctx = document.getElementById("dash-finance-chart");
+      if (!ctx) return;
+
+      if (AppState.charts.dashFinance) {
+        AppState.charts.dashFinance.destroy();
+      }
+
+      // 生成近6个月的标签
+      const months = [];
+      const expenseData = [];
+      const incomeData = [];
+      const now = new Date();
+
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const prefix = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+        months.push(`${d.getMonth() + 1}月`);
+
+        let exp = 0;
+        let inc = 0;
+        AppState.data.finance.transactions.forEach(t => {
+          if (t.date.startsWith(prefix)) {
+            if (t.type === "EXPENSE") exp += Number(t.amount);
+            if (t.type === "INCOME") inc += Number(t.amount);
+          }
+        });
+        expenseData.push(exp);
+        incomeData.push(inc);
+      }
+
+      AppState.charts.dashFinance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [
+            {
+              label: '支出 (¥)',
+              data: expenseData,
+              backgroundColor: 'rgba(239, 68, 68, 0.75)',
+              borderRadius: 6
+            },
+            {
+              label: '收入 (¥)',
+              data: incomeData,
+              backgroundColor: 'rgba(16, 185, 129, 0.75)',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: { grid: { color: 'rgba(156, 163, 175, 0.1)' } }
+          }
+        }
+      });
+    }
+
+    /**
+     * [MODULE: PROFILE & QUICK INFO]
+     */
+    function renderProfileView() {
+      if (!AppState.data) return;
+      const profile = AppState.data.profile;
+
+      document.getElementById("profile-avatar-preview").src = profile.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200";
+      document.getElementById("profile-input-name").value = profile.nickname || "";
+      document.getElementById("profile-input-status").value = profile.status || "";
+      document.getElementById("profile-input-bio").value = profile.bio || "";
+
+      const listContainer = document.getElementById("profile-fields-list");
+      listContainer.innerHTML = "";
+
+      profile.fields.forEach((field, index) => {
+        const card = document.createElement("div");
+        card.className = "p-4 rounded-xl bg-slate-100/70 dark:bg-slate-900/70 border border-slate-200/50 dark:border-slate-800/50 relative flex flex-col justify-between group";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-semibold text-slate-500">${field.label}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400">${field.category || '通用'}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+              <p id="field-val-${field.id}" class="text-sm font-mono font-medium truncate flex-1 ${field.isSecret ? 'privacy-blur' : ''}">${field.value}</p>
+            </div>
+          </div>
+          <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200/50 dark:border-slate-800/50 text-xs">
+            <div class="flex items-center gap-2">
+              ${field.isSecret ? `
+                <button onclick="toggleFieldSecret('${field.id}')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1" title="切换隐私状态">
+                  <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+              <button onclick="copyToClipboard('${field.value.replace(/'/g, "\\'")}', '${field.label}')" class="text-brand-500 hover:text-brand-600 flex items-center gap-1 font-medium">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span>复制</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+              <button onclick="openEditProfileFieldModal('${field.id}')" class="text-slate-400 hover:text-brand-500 p-1" title="编辑字段">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="deleteProfileField('${field.id}')" class="text-red-400 hover:text-red-500 p-1" title="删除字段">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        listContainer.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function toggleFieldSecret(fieldId) {
+      const el = document.getElementById(`field-val-${fieldId}`);
+      if (el) {
+        el.classList.toggle("privacy-blur");
+      }
+    }
+
+    async function handleAvatarUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const compressedBase64 = await compressImageFile(file, 256, 0.85);
+        AppState.data.profile.avatar = compressedBase64;
+        document.getElementById("profile-avatar-preview").src = compressedBase64;
+        document.getElementById("sidebar-avatar-img").src = compressedBase64;
+        await commitDataChange("头像更新并已安全压缩加密");
+      } catch (err) {
+        showToast("头像处理失败，请重试", "error");
+      }
+    }
+
+    async function saveProfileCardInfo() {
+      AppState.data.profile.nickname = document.getElementById("profile-input-name").value.trim();
+      AppState.data.profile.status = document.getElementById("profile-input-status").value.trim();
+      AppState.data.profile.bio = document.getElementById("profile-input-bio").value.trim();
+      applyMetaSettings();
+      await commitDataChange("个人名片信息已保存");
+    }
+
+    function openAddProfileFieldModal() {
+      openModal(`
+        <h3 class="text-base font-bold mb-4">添加档案卡片字段</h3>
+        <form id="add-field-form" onsubmit="handleAddProfileFieldSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">字段名称</label>
+            <input type="text" id="new-field-label" required placeholder="如：服务器密码 / 社保卡号" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">字段取值 (Value)</label>
+            <input type="text" id="new-field-value" required placeholder="实际内容" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">所属分类</label>
+              <input type="text" id="new-field-category" placeholder="如：联系方式 / 资产" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+            <div class="flex items-center pt-5">
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" id="new-field-secret" checked class="rounded text-brand-600 focus:ring-brand-500">
+                <span>开启敏感遮罩保护</span>
+              </label>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-4">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">确认添加</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function openEditProfileFieldModal(fieldId) {
+      const field = AppState.data.profile.fields.find(f => f.id === fieldId);
+      if (!field) return;
+
+      openModal(`
+        <h3 class="text-base font-bold mb-4">编辑档案字段</h3>
+        <form id="edit-field-form" onsubmit="handleEditProfileFieldSubmit(event, '${field.id}')" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">字段名称</label>
+            <input type="text" id="edit-field-label" required value="${field.label}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">字段取值 (Value)</label>
+            <input type="text" id="edit-field-value" required value="${field.value.replace(/"/g, '&quot;')}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">所属分类</label>
+              <input type="text" id="edit-field-category" value="${field.category || ''}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+            <div class="flex items-center pt-5">
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" id="edit-field-secret" ${field.isSecret ? 'checked' : ''} class="rounded text-brand-600 focus:ring-brand-500">
+                <span>开启敏感遮罩保护</span>
+              </label>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-4">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">保存修改</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleEditProfileFieldSubmit(e, fieldId) {
+      e.preventDefault();
+      const field = AppState.data.profile.fields.find(f => f.id === fieldId);
+      if (!field) return;
+
+      field.label = document.getElementById("edit-field-label").value.trim();
+      field.value = document.getElementById("edit-field-value").value.trim();
+      field.category = document.getElementById("edit-field-category").value.trim() || "常规";
+      field.isSecret = document.getElementById("edit-field-secret").checked;
+
+      closeModal();
+      renderProfileView();
+      await commitDataChange("档案字段已更新");
+    }
+
+    async function handleAddProfileFieldSubmit(e) {
+      e.preventDefault();
+      const label = document.getElementById("new-field-label").value.trim();
+      const value = document.getElementById("new-field-value").value.trim();
+      const category = document.getElementById("new-field-category").value.trim() || "常规";
+      const isSecret = document.getElementById("new-field-secret").checked;
+
+      const newField = {
+        id: "f_" + Date.now(),
+        label,
+        value,
+        category,
+        isSecret
+      };
+
+      AppState.data.profile.fields.push(newField);
+      closeModal();
+      renderProfileView();
+      await commitDataChange("已添加新档案字段");
+    }
+
+    async function deleteProfileField(id) {
+      if (!confirm("确定要删除此档案字段吗？")) return;
+      AppState.data.profile.fields = AppState.data.profile.fields.filter(f => f.id !== id);
+      renderProfileView();
+      await commitDataChange("已删除该字段");
+    }
+
+    /**
+     * [MODULE: BOOKMARK & NAVIGATION HUB]
+     */
+    let currentBookmarkFilter = "ALL";
+
+    function renderBookmarksView() {
+      if (!AppState.data) return;
+      const categories = AppState.data.categories;
+      const bookmarks = AppState.data.bookmarks;
+
+      // 渲染分类过滤器按钮
+      const filterContainer = document.getElementById("bookmark-category-filters");
+      filterContainer.innerHTML = "";
+
+      const allBtn = document.createElement("button");
+      allBtn.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition shrink-0 ${currentBookmarkFilter === 'ALL' ? 'bg-brand-600 text-white shadow-md shadow-brand-500/25' : 'bg-slate-200/60 dark:bg-slate-800/60 hover:bg-slate-300 dark:hover:bg-slate-700'}`;
+      allBtn.textContent = `全部 (${bookmarks.length})`;
+      allBtn.onclick = () => { currentBookmarkFilter = "ALL"; renderBookmarksView(); };
+      filterContainer.appendChild(allBtn);
+
+      categories.forEach(cat => {
+        const count = bookmarks.filter(b => b.categoryId === cat.id).length;
+        const btn = document.createElement("button");
+        btn.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition shrink-0 ${currentBookmarkFilter === cat.id ? 'bg-brand-600 text-white shadow-md shadow-brand-500/25' : 'bg-slate-200/60 dark:bg-slate-800/60 hover:bg-slate-300 dark:hover:bg-slate-700'}`;
+        btn.textContent = `${cat.name} (${count})`;
+        btn.onclick = () => { currentBookmarkFilter = cat.id; renderBookmarksView(); };
+        filterContainer.appendChild(btn);
+      });
+
+      // 渲染书签卡片
+      const gridContainer = document.getElementById("bookmarks-grid-container");
+      gridContainer.innerHTML = "";
+
+      const filtered = currentBookmarkFilter === "ALL" 
+        ? bookmarks 
+        : bookmarks.filter(b => b.categoryId === currentBookmarkFilter);
+
+      if (filtered.length === 0) {
+        gridContainer.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400 text-xs">
+            该分类下暂无书签，点击右上角“添加书签”快速录入
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(bm => {
+        const domain = getDomain(bm.url);
+        const card = document.createElement("div");
+        card.className = "glass-card rounded-2xl p-4 flex flex-col justify-between hover:border-brand-500/60 transition group";
+        
+        let tagsHtml = "";
+        if (bm.tags && bm.tags.length) {
+          tagsHtml = bm.tags.map(t => `<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-500">#${t}</span>`).join(" ");
+        }
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" onerror="this.src='https://api.iconify.design/lucide:globe.svg'" alt="" class="w-7 h-7 rounded-lg shrink-0">
+                <div class="min-w-0">
+                  <h4 class="text-xs font-bold truncate group-hover:text-brand-500">${bm.title}</h4>
+                  <p class="text-[10px] text-slate-400 truncate">${domain}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                <button onclick="openEditBookmarkModal('${bm.id}')" class="p-1 text-slate-400 hover:text-brand-500" title="编辑书签">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteBookmark('${bm.id}')" class="p-1 text-slate-400 hover:text-red-500" title="删除书签">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1 mt-2">
+              ${tagsHtml}
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between text-xs">
+            <a href="${bm.url}" target="_blank" rel="noopener noreferrer" class="text-brand-500 hover:underline flex items-center gap-1 font-medium text-[11px]">
+              <span>访问站点</span>
+              <i data-lucide="external-link" class="w-3 h-3"></i>
+            </a>
+            <button onclick="copyToClipboard('${bm.url}', '网址')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="复制链接">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+        gridContainer.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function getDomain(url) {
+      try {
+        return new URL(url).hostname;
+      } catch (e) {
+        return url;
+      }
+    }
+
+    function openAddBookmarkModal() {
+      const categories = AppState.data.categories;
+      const catOptions = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+
+      openModal(`
+        <h3 class="text-base font-bold mb-4">添加常用书签</h3>
+        <form id="add-bm-form" onsubmit="handleAddBookmarkSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">网站名称</label>
+            <input type="text" id="bm-title" required placeholder="如：GitHub" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">URL 网址</label>
+            <input type="url" id="bm-url" required placeholder="https://..." class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">所属分类</label>
+              <select id="bm-category" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                ${catOptions}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">标签 (逗号分隔)</label>
+              <input type="text" id="bm-tags" placeholder="日常, 工具" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-4">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">保存书签</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function openEditBookmarkModal(bmId) {
+      const bm = AppState.data.bookmarks.find(b => b.id === bmId);
+      if (!bm) return;
+      const categories = AppState.data.categories;
+      const catOptions = categories.map(c => `<option value="${c.id}" ${c.id === bm.categoryId ? 'selected' : ''}>${c.name}</option>`).join("");
+
+      openModal(`
+        <h3 class="text-base font-bold mb-4">编辑常用书签</h3>
+        <form id="edit-bm-form" onsubmit="handleEditBookmarkSubmit(event, '${bm.id}')" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">网站名称</label>
+            <input type="text" id="edit-bm-title" required value="${bm.title}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">URL 网址</label>
+            <input type="url" id="edit-bm-url" required value="${bm.url}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">所属分类</label>
+              <select id="edit-bm-category" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                ${catOptions}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">标签 (逗号分隔)</label>
+              <input type="text" id="edit-bm-tags" value="${(bm.tags || []).join(', ')}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-4">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">更新书签</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleEditBookmarkSubmit(e, bmId) {
+      e.preventDefault();
+      const bm = AppState.data.bookmarks.find(b => b.id === bmId);
+      if (!bm) return;
+
+      bm.title = document.getElementById("edit-bm-title").value.trim();
+      bm.url = document.getElementById("edit-bm-url").value.trim();
+      bm.categoryId = document.getElementById("edit-bm-category").value;
+      const tagsRaw = document.getElementById("edit-bm-tags").value.trim();
+      bm.tags = tagsRaw ? tagsRaw.split(/[,， ]+/).filter(Boolean) : [];
+
+      closeModal();
+      renderBookmarksView();
+      await commitDataChange("书签信息已更新");
+    }
+
+    async function handleAddBookmarkSubmit(e) {
+      e.preventDefault();
+      const title = document.getElementById("bm-title").value.trim();
+      const url = document.getElementById("bm-url").value.trim();
+      const categoryId = document.getElementById("bm-category").value;
+      const tagsRaw = document.getElementById("bm-tags").value.trim();
+      const tags = tagsRaw ? tagsRaw.split(/[,， ]+/).filter(Boolean) : [];
+
+      const newBm = {
+        id: "bm_" + Date.now(),
+        title,
+        url,
+        categoryId,
+        tags
+      };
+
+      AppState.data.bookmarks.unshift(newBm);
+      closeModal();
+      renderBookmarksView();
+      await commitDataChange("新书签已收录");
+    }
+
+    async function deleteBookmark(id) {
+      if (!confirm("确定要删除此书签吗？")) return;
+      AppState.data.bookmarks = AppState.data.bookmarks.filter(b => b.id !== id);
+      renderBookmarksView();
+      await commitDataChange("书签已移除");
+    }
+
+    function openManageCategoriesModal() {
+      const categories = AppState.data.categories;
+      let listHtml = categories.map(c => `
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-xs">
+          <span>${c.name}</span>
+          <button onclick="deleteCategory('${c.id}')" class="text-red-400 hover:text-red-500 p-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `).join("");
+
+      openModal(`
+        <h3 class="text-base font-bold mb-3">管理网站分类</h3>
+        <div class="space-y-2 mb-4 max-h-48 overflow-y-auto">
+          ${listHtml}
+        </div>
+        <form id="add-cat-form" onsubmit="handleAddCategorySubmit(event)" class="flex gap-2">
+          <input type="text" id="new-cat-name" required placeholder="如：💻 算法刷题" class="flex-1 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          <button type="submit" class="px-3.5 py-2 rounded-xl bg-brand-600 text-white text-xs font-medium">添加</button>
+        </form>
+        <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+          <button onclick="closeModal()" class="px-4 py-1.5 rounded-xl text-xs font-medium bg-slate-200 dark:bg-slate-800">完成</button>
+        </div>
+      `);
+    }
+
+    async function handleAddCategorySubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById("new-cat-name").value.trim();
+      AppState.data.categories.push({ id: "c_" + Date.now(), name });
+      openManageCategoriesModal();
+      renderBookmarksView();
+      await commitDataChange("分类已添加");
+    }
+
+    async function deleteCategory(id) {
+      AppState.data.categories = AppState.data.categories.filter(c => c.id !== id);
+      openManageCategoriesModal();
+      renderBookmarksView();
+      await commitDataChange("分类已删除");
+    }
+
+    /**
+     * [MODULE: PERSONAL NOTES & VAULT]
+     */
+    function renderNotesList() {
+      if (!AppState.data) return;
+      const notes = AppState.data.notes;
+      const searchKeyword = (document.getElementById("notes-search-input")?.value || "").toLowerCase();
+      const catFilter = document.getElementById("notes-category-select")?.value || "ALL";
+
+      // 填充分类下拉
+      const catSelect = document.getElementById("notes-category-select");
+      if (catSelect && catSelect.children.length <= 1) {
+        const uniqueCats = [...new Set(notes.map(n => n.category || "未分类"))];
+        uniqueCats.forEach(cat => {
+          const opt = document.createElement("option");
+          opt.value = cat;
+          opt.textContent = cat;
+          catSelect.appendChild(opt);
+        });
+      }
+
+      const container = document.getElementById("notes-cards-container");
+      container.innerHTML = "";
+
+      let filtered = notes.filter(n => {
+        const matchSearch = n.title.toLowerCase().includes(searchKeyword) || n.content.toLowerCase().includes(searchKeyword);
+        const matchCat = catFilter === "ALL" || n.category === catFilter;
+        return matchSearch && matchCat;
+      });
+
+      // 排序：置顶在前，时间在后
+      filtered.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return b.updatedAt - a.updatedAt;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400 text-xs">
+            没有找到匹配的备忘，点击右上角开始起草
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(note => {
+        const card = document.createElement("div");
+        card.className = `glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-brand-500/60 transition relative ${note.isPinned ? 'border-amber-500/40 shadow-sm' : ''}`;
+
+        // 使用 marked 渲染精简版前文
+        const parsedPreview = marked.parse(note.content.substring(0, 180) + (note.content.length > 180 ? '...' : ''));
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                ${note.isPinned ? '<i data-lucide="pin" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>' : ''}
+                <h4 class="text-sm font-bold truncate">${note.title}</h4>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400 shrink-0">${note.category || '通用'}</span>
+            </div>
+            <div class="text-xs text-slate-600 dark:text-slate-400 line-clamp-4 prose dark:prose-invert max-w-none text-left">
+              ${parsedPreview}
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between text-xs">
+            <span class="text-[10px] text-slate-400">${new Date(note.updatedAt).toLocaleDateString()}</span>
+            <div class="flex items-center gap-2">
+              <button onclick="togglePinNote('${note.id}')" class="p-1 text-slate-400 hover:text-amber-500" title="置顶切换">
+                <i data-lucide="pin" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="openEditNoteModal('${note.id}')" class="p-1 text-slate-400 hover:text-brand-500" title="编辑笔记">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="deleteNote('${note.id}')" class="p-1 text-slate-400 hover:text-red-500" title="删除笔记">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function openAddNoteModal() {
+      openNoteEditorModal(null);
+    }
+
+    function openEditNoteModal(noteId) {
+      const note = AppState.data.notes.find(n => n.id === noteId);
+      if (!note) return;
+      openNoteEditorModal(note);
+    }
+
+    function openNoteEditorModal(note) {
+      const isEdit = !!note;
+      const title = isEdit ? note.title : "";
+      const content = isEdit ? note.content : "";
+      const category = isEdit ? note.category : "日常工作";
+      const isPinned = isEdit ? note.isPinned : false;
+
+      openModal(`
+        <h3 class="text-base font-bold mb-4">${isEdit ? '编辑备忘' : '起草新备忘'}</h3>
+        <form id="note-editor-form" onsubmit="handleSaveNoteSubmit(event, '${isEdit ? note.id : ''}')" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">标题</label>
+            <input type="text" id="note-title-input" required value="${title}" placeholder="笔记标题" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">分类</label>
+              <input type="text" id="note-cat-input" value="${category}" placeholder="如：工作/备忘" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+            <div class="flex items-center pt-5">
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" id="note-pinned-input" ${isPinned ? 'checked' : ''} class="rounded text-brand-600 focus:ring-brand-500">
+                <span>置顶此备忘</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-medium text-slate-500">内容 (支持 Markdown 语法)</label>
+              <label class="text-[11px] text-brand-500 hover:underline cursor-pointer flex items-center gap-1">
+                <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                <span>插入压缩图片附件</span>
+                <input type="file" accept="image/*" class="hidden" onchange="handleInsertNoteImage(event)">
+              </label>
+            </div>
+            <textarea id="note-content-input" rows="8" placeholder="支持 # 标题、代码块、任务列表等 Markdown 格式..." class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono">${content}</textarea>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">保存备忘</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleInsertNoteImage(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const compressed = await compressImageFile(file, 600, 0.75);
+        const textarea = document.getElementById("note-content-input");
+        const imgMarkdown = `\n![图片附件](${compressed})\n`;
+        textarea.value += imgMarkdown;
+        showToast("已自动压缩并将图片插入正文", "success");
+      } catch (err) {
+        showToast("图片压缩处理失败", "error");
+      }
+    }
+
+    async function handleSaveNoteSubmit(e, existingId) {
+      e.preventDefault();
+      const title = document.getElementById("note-title-input").value.trim();
+      const category = document.getElementById("note-cat-input").value.trim() || "常规";
+      const isPinned = document.getElementById("note-pinned-input").checked;
+      const content = document.getElementById("note-content-input").value;
+
+      if (existingId) {
+        const note = AppState.data.notes.find(n => n.id === existingId);
+        if (note) {
+          note.title = title;
+          note.category = category;
+          note.isPinned = isPinned;
+          note.content = content;
+          note.updatedAt = Date.now();
+        }
+      } else {
+        AppState.data.notes.unshift({
+          id: "n_" + Date.now(),
+          title,
+          category,
+          isPinned,
+          content,
+          updatedAt: Date.now()
+        });
+      }
+
+      closeModal();
+      renderNotesList();
+      await commitDataChange("备忘内容已保存");
+    }
+
+    async function togglePinNote(id) {
+      const note = AppState.data.notes.find(n => n.id === id);
+      if (note) {
+        note.isPinned = !note.isPinned;
+        renderNotesList();
+        await commitDataChange("笔记置顶状态已更新");
+      }
+    }
+
+    async function deleteNote(id) {
+      if (!confirm("确定要删除这篇备忘吗？")) return;
+      AppState.data.notes = AppState.data.notes.filter(n => n.id !== id);
+      renderNotesList();
+      await commitDataChange("笔记已删除");
+    }
+
+    /**
+     * [MODULE: PERSONAL FINANCE & BILLS]
+     */
+    function renderFinanceView() {
+      if (!AppState.data) return;
+      const fin = AppState.data.finance;
+
+      const now = new Date();
+      const currentMonthPrefix = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+      
+      let monthExpense = 0;
+      let monthIncome = 0;
+      fin.transactions.forEach(t => {
+        if (t.date.startsWith(currentMonthPrefix)) {
+          if (t.type === "EXPENSE") monthExpense += Number(t.amount);
+          if (t.type === "INCOME") monthIncome += Number(t.amount);
+        }
+      });
+      const monthBalance = monthIncome - monthExpense;
+
+      document.getElementById("fin-month-expense").textContent = `¥${monthExpense.toFixed(2)}`;
+      document.getElementById("fin-month-income").textContent = `¥${monthIncome.toFixed(2)}`;
+      document.getElementById("fin-month-balance").textContent = `¥${monthBalance.toFixed(2)}`;
+
+      // 预算
+      const budget = fin.budget || 8000;
+      const percent = Math.min(Math.round((monthExpense / budget) * 100), 100);
+      document.getElementById("fin-budget-target").textContent = `限额: ¥${budget}`;
+      document.getElementById("fin-budget-percent").textContent = `${percent}%`;
+      const budgetBar = document.getElementById("fin-budget-bar");
+      budgetBar.style.width = `${percent}%`;
+      if (percent > 90) {
+        budgetBar.className = "h-full bg-red-500 rounded-full transition-all duration-300";
+      } else if (percent > 70) {
+        budgetBar.className = "h-full bg-amber-500 rounded-full transition-all duration-300";
+      } else {
+        budgetBar.className = "h-full bg-brand-500 rounded-full transition-all duration-300";
+      }
+
+      // 渲染图表
+      renderFinanceCharts();
+      // 渲染订阅
+      renderSubscriptionsList();
+      // 渲染明细表格
+      renderFinanceTransactions();
+    }
+
+    function renderFinanceCharts() {
+      if (!AppState.data) return;
+
+      // 1. 饼图：当月支出分类占比
+      const pieCtx = document.getElementById("fin-category-pie-chart");
+      if (pieCtx) {
+        if (AppState.charts.finPie) AppState.charts.finPie.destroy();
+
+        const now = new Date();
+        const currentMonthPrefix = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        const catMap = {};
+
+        AppState.data.finance.transactions.forEach(t => {
+          if (t.date.startsWith(currentMonthPrefix) && t.type === "EXPENSE") {
+            catMap[t.category] = (catMap[t.category] || 0) + Number(t.amount);
+          }
+        });
+
+        const labels = Object.keys(catMap);
+        const values = Object.values(catMap);
+
+        AppState.charts.finPie = new Chart(pieCtx, {
+          type: 'doughnut',
+          data: {
+            labels: labels.length ? labels : ['暂无支出'],
+            datasets: [{
+              data: values.length ? values : [1],
+              backgroundColor: [
+                '#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#94a3b8'
+              ],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+            }
+          }
+        });
+      }
+
+      // 2. 趋势双柱/折线图
+      const trendCtx = document.getElementById("fin-trend-chart");
+      if (trendCtx) {
+        if (AppState.charts.finTrend) AppState.charts.finTrend.destroy();
+
+        const months = [];
+        const expData = [];
+        const incData = [];
+        const now = new Date();
+
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const prefix = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+          months.push(`${d.getMonth() + 1}月`);
+
+          let exp = 0;
+          let inc = 0;
+          AppState.data.finance.transactions.forEach(t => {
+            if (t.date.startsWith(prefix)) {
+              if (t.type === "EXPENSE") exp += Number(t.amount);
+              if (t.type === "INCOME") inc += Number(t.amount);
+            }
+          });
+          expData.push(exp);
+          incData.push(inc);
+        }
+
+        AppState.charts.finTrend = new Chart(trendCtx, {
+          type: 'line',
+          data: {
+            labels: months,
+            datasets: [
+              {
+                label: '月度支出',
+                data: expData,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.3,
+                fill: true
+              },
+              {
+                label: '月度收入',
+                data: incData,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.3,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }
+            },
+            scales: {
+              y: { grid: { color: 'rgba(156, 163, 175, 0.1)' } }
+            }
+          }
+        });
+      }
+    }
+
+    function renderSubscriptionsList() {
+      const container = document.getElementById("fin-subscriptions-grid");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const subs = AppState.data.finance.subscriptions || [];
+      const currentDay = new Date().getDate();
+
+      subs.forEach(sub => {
+        let diff = sub.dueDay - currentDay;
+        if (diff < 0) diff += 30;
+
+        const card = document.createElement("div");
+        card.className = "p-3.5 rounded-xl bg-slate-100/70 dark:bg-slate-900/70 border border-slate-200/50 dark:border-slate-800/50 flex flex-col justify-between group";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-1 mb-1">
+              <span class="font-bold text-xs truncate">${sub.name}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${diff <= 3 ? 'bg-red-500/20 text-red-500' : 'bg-brand-500/20 text-brand-500'}">
+                ${diff === 0 ? '今日应缴' : diff + '天后扣费'}
+              </span>
+            </div>
+            <div class="flex items-baseline gap-1 mt-1">
+              <span class="text-base font-bold text-slate-800 dark:text-slate-100">¥${sub.amount}</span>
+              <span class="text-[10px] text-slate-400">/${sub.cycle}</span>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1 truncate">${sub.note || '无备注'}</p>
+          </div>
+          <div class="flex items-center justify-between mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-800/50 text-xs">
+            <span class="text-[10px] text-slate-400">每月 ${sub.dueDay} 日</span>
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+              <button onclick="openEditSubscriptionModal('${sub.id}')" class="text-slate-400 hover:text-brand-500 p-1" title="编辑订阅">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="deleteSubscription('${sub.id}')" class="text-slate-400 hover:text-red-500 p-1" title="删除订阅">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function renderFinanceTransactions() {
+      const tbody = document.getElementById("fin-transactions-table-body");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const monthFilter = document.getElementById("fin-filter-month")?.value;
+      const typeFilter = document.getElementById("fin-filter-type")?.value || "ALL";
+
+      let list = [...AppState.data.finance.transactions];
+
+      if (monthFilter) {
+        list = list.filter(t => t.date.startsWith(monthFilter));
+      }
+      if (typeFilter !== "ALL") {
+        list = list.filter(t => t.type === typeFilter);
+      }
+
+      list.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">暂无符合条件的账单流水记录</td></tr>`;
+        return;
+      }
+
+      list.forEach(tx => {
+        const isExp = tx.type === "EXPENSE";
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-100/50 dark:hover:bg-slate-900/50 transition";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-mono">${tx.date}</td>
+          <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-slate-800">${tx.category}</span></td>
+          <td class="py-2.5 px-3 text-slate-500">${tx.paymentMethod}</td>
+          <td class="py-2.5 px-3 text-slate-500 max-w-xs truncate">${tx.note || '-'}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold ${isExp ? 'text-red-500' : 'text-emerald-500'}">
+            ${isExp ? '-' : '+'}¥${Number(tx.amount).toFixed(2)}
+          </td>
+          <td class="py-2.5 px-3 text-center">
+            <button onclick="openEditTransactionModal('${tx.id}')" class="p-1 text-slate-400 hover:text-brand-500 mr-1" title="编辑账单">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            </button>
+            <button onclick="deleteTransaction('${tx.id}')" class="p-1 text-slate-400 hover:text-red-500" title="删除记录">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function openAddTransactionModal() {
+      const today = new Date().toISOString().split('T')[0];
+      openModal(`
+        <h3 class="text-base font-bold mb-4">记录一笔账单</h3>
+        <form id="add-tx-form" onsubmit="handleAddTransactionSubmit(event)" class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">账单类型</label>
+              <select id="tx-type" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                <option value="EXPENSE">支出</option>
+                <option value="INCOME">收入</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">金额 (元)</label>
+              <input type="number" step="0.01" id="tx-amount" required placeholder="0.00" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">分类</label>
+              <input type="text" id="tx-category" required placeholder="餐饮/购物/数码/薪资" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">日期</label>
+              <input type="date" id="tx-date" required value="${today}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">支付方式</label>
+            <select id="tx-method" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+              <option value="微信支付">微信支付</option>
+              <option value="支付宝">支付宝</option>
+              <option value="信用卡">信用卡</option>
+              <option value="银行卡转账">银行卡转账</option>
+              <option value="现金">现金</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">备注说明</label>
+            <input type="text" id="tx-note" placeholder="具体用途或备忘" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">确认入账</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function openEditTransactionModal(txId) {
+      const tx = AppState.data.finance.transactions.find(t => t.id === txId);
+      if (!tx) return;
+
+      openModal(`
+        <h3 class="text-base font-bold mb-4">修改账单记录</h3>
+        <form id="edit-tx-form" onsubmit="handleEditTransactionSubmit(event, '${tx.id}')" class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">账单类型</label>
+              <select id="edit-tx-type" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                <option value="EXPENSE" ${tx.type === 'EXPENSE' ? 'selected' : ''}>支出</option>
+                <option value="INCOME" ${tx.type === 'INCOME' ? 'selected' : ''}>收入</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">金额 (元)</label>
+              <input type="number" step="0.01" id="edit-tx-amount" required value="${tx.amount}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">分类</label>
+              <input type="text" id="edit-tx-category" required value="${tx.category}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">日期</label>
+              <input type="date" id="edit-tx-date" required value="${tx.date}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">支付方式</label>
+            <select id="edit-tx-method" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+              <option value="微信支付" ${tx.paymentMethod === '微信支付' ? 'selected' : ''}>微信支付</option>
+              <option value="支付宝" ${tx.paymentMethod === '支付宝' ? 'selected' : ''}>支付宝</option>
+              <option value="信用卡" ${tx.paymentMethod === '信用卡' ? 'selected' : ''}>信用卡</option>
+              <option value="银行卡转账" ${tx.paymentMethod === '银行卡转账' ? 'selected' : ''}>银行卡转账</option>
+              <option value="现金" ${tx.paymentMethod === '现金' ? 'selected' : ''}>现金</option>
+              <option value="其他" ${tx.paymentMethod === '其他' ? 'selected' : ''}>其他</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">备注说明</label>
+            <input type="text" id="edit-tx-note" value="${tx.note || ''}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">保存修改</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleEditTransactionSubmit(e, txId) {
+      e.preventDefault();
+      const tx = AppState.data.finance.transactions.find(t => t.id === txId);
+      if (!tx) return;
+
+      tx.type = document.getElementById("edit-tx-type").value;
+      tx.amount = parseFloat(document.getElementById("edit-tx-amount").value);
+      tx.category = document.getElementById("edit-tx-category").value.trim();
+      tx.date = document.getElementById("edit-tx-date").value;
+      tx.paymentMethod = document.getElementById("edit-tx-method").value;
+      tx.note = document.getElementById("edit-tx-note").value.trim();
+
+      closeModal();
+      renderFinanceView();
+      await commitDataChange("账单流水已更新");
+    }
+
+    async function handleAddTransactionSubmit(e) {
+      e.preventDefault();
+      const type = document.getElementById("tx-type").value;
+      const amount = parseFloat(document.getElementById("tx-amount").value);
+      const category = document.getElementById("tx-category").value.trim();
+      const date = document.getElementById("tx-date").value;
+      const paymentMethod = document.getElementById("tx-method").value;
+      const note = document.getElementById("tx-note").value.trim();
+
+      AppState.data.finance.transactions.unshift({
+        id: "tx_" + Date.now(),
+        type,
+        amount,
+        category,
+        date,
+        paymentMethod,
+        note
+      });
+
+      closeModal();
+      renderFinanceView();
+      await commitDataChange("记账记录已添加");
+    }
+
+    async function deleteTransaction(id) {
+      AppState.data.finance.transactions = AppState.data.finance.transactions.filter(t => t.id !== id);
+      renderFinanceView();
+      await commitDataChange("流水记录已删除");
+    }
+
+    function openAddSubscriptionModal() {
+      openModal(`
+        <h3 class="text-base font-bold mb-4">新增周期性固定账单 / 订阅</h3>
+        <form id="add-sub-form" onsubmit="handleAddSubscriptionSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">服务/账单名称</label>
+            <input type="text" id="sub-name" required placeholder="如：Netflix / 宽带费 / 房租" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">扣费金额 (元)</label>
+              <input type="number" step="0.01" id="sub-amount" required placeholder="68.00" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">扣款周期</label>
+              <select id="sub-cycle" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                <option value="月">按月扣除</option>
+                <option value="年">按年扣除</option>
+                <option value="季">按季扣除</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">每月扣费日 (1~31)</label>
+              <input type="number" min="1" max="31" id="sub-dueday" required value="1" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">分类</label>
+              <input type="text" id="sub-category" placeholder="流媒体/网络/居住" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">备注</label>
+            <input type="text" id="sub-note" placeholder="扣款账户、绑卡信息等" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">保存订阅</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function openEditSubscriptionModal(subId) {
+      const sub = AppState.data.finance.subscriptions.find(s => s.id === subId);
+      if (!sub) return;
+
+      openModal(`
+        <h3 class="text-base font-bold mb-4">修改周期性账单 / 订阅</h3>
+        <form id="edit-sub-form" onsubmit="handleEditSubscriptionSubmit(event, '${sub.id}')" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">服务/账单名称</label>
+            <input type="text" id="edit-sub-name" required value="${sub.name}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">扣费金额 (元)</label>
+              <input type="number" step="0.01" id="edit-sub-amount" required value="${sub.amount}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">扣款周期</label>
+              <select id="edit-sub-cycle" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                <option value="月" ${sub.cycle === '月' ? 'selected' : ''}>按月扣除</option>
+                <option value="年" ${sub.cycle === '年' ? 'selected' : ''}>按年扣除</option>
+                <option value="季" ${sub.cycle === '季' ? 'selected' : ''}>按季扣除</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">每月扣费日 (1~31)</label>
+              <input type="number" min="1" max="31" id="edit-sub-dueday" required value="${sub.dueDay}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">分类</label>
+              <input type="text" id="edit-sub-category" value="${sub.category || ''}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">备注</label>
+            <input type="text" id="edit-sub-note" value="${sub.note || ''}" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">保存修改</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleEditSubscriptionSubmit(e, subId) {
+      e.preventDefault();
+      const sub = AppState.data.finance.subscriptions.find(s => s.id === subId);
+      if (!sub) return;
+
+      sub.name = document.getElementById("edit-sub-name").value.trim();
+      sub.amount = parseFloat(document.getElementById("edit-sub-amount").value);
+      sub.cycle = document.getElementById("edit-sub-cycle").value;
+      sub.dueDay = parseInt(document.getElementById("edit-sub-dueday").value, 10);
+      sub.category = document.getElementById("edit-sub-category").value.trim() || "常规订阅";
+      sub.note = document.getElementById("edit-sub-note").value.trim();
+
+      closeModal();
+      renderFinanceView();
+      await commitDataChange("订阅设置已更新");
+    }
+
+    async function handleAddSubscriptionSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById("sub-name").value.trim();
+      const amount = parseFloat(document.getElementById("sub-amount").value);
+      const cycle = document.getElementById("sub-cycle").value;
+      const dueDay = parseInt(document.getElementById("sub-dueday").value, 10);
+      const category = document.getElementById("sub-category").value.trim() || "常规订阅";
+      const note = document.getElementById("sub-note").value.trim();
+
+      AppState.data.finance.subscriptions.push({
+        id: "sub_" + Date.now(),
+        name,
+        amount,
+        cycle,
+        dueDay,
+        category,
+        note
+      });
+
+      closeModal();
+      renderFinanceView();
+      await commitDataChange("已添加周期订阅提醒");
+    }
+
+    async function deleteSubscription(id) {
+      AppState.data.finance.subscriptions = AppState.data.finance.subscriptions.filter(s => s.id !== id);
+      renderFinanceView();
+      await commitDataChange("订阅已移除");
+    }
+
+    async function promptEditBudget() {
+      const current = AppState.data.finance.budget || 8000;
+      const newVal = prompt("请输入新的月度支出预算额度（元）：", current);
+      if (newVal !== null && !isNaN(Number(newVal)) && Number(newVal) > 0) {
+        AppState.data.finance.budget = Number(newVal);
+        renderFinanceView();
+        await commitDataChange("预算额度已调整");
+      }
+    }
+
+    /**
+     * [MODULE: CUSTOM EXTENSION MODULE BUILDER]
+     * 用户可随时无代码新建属于自己的列表/数据表模块
+     */
+    let currentCustomModuleId = null;
+
+    function renderCustomModulesNav() {
+      const container = document.getElementById("custom-modules-nav-list");
+      if (!container || !AppState.data) return;
+      container.innerHTML = "";
+
+      const modules = AppState.data.customModules || [];
+      modules.forEach(mod => {
+        const btn = document.createElement("button");
+        btn.id = `nav-btn-${mod.id}`;
+        btn.className = "nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition";
+        btn.onclick = () => {
+          openCustomModuleView(mod.id);
+        };
+        btn.innerHTML = `
+          <i data-lucide="${mod.icon || 'box'}" class="w-4 h-4 text-purple-500"></i>
+          <span class="truncate">${mod.name}</span>
+        `;
+        container.appendChild(btn);
+      });
+      lucide.createIcons();
+    }
+
+    function openCustomModuleView(modId) {
+      currentCustomModuleId = modId;
+      const mod = AppState.data.customModules.find(m => m.id === modId);
+      if (!mod) return;
+
+      document.getElementById("custom-mod-title").textContent = mod.name;
+      document.getElementById("custom-mod-desc").textContent = mod.description || "自定义结构化扩展模块";
+
+      // 切换视图为 custom-module
+      switchView("custom-module");
+
+      // 高亮侧边栏对应的自定义模块按钮
+      document.querySelectorAll(".nav-item").forEach(item => {
+        item.classList.remove("bg-brand-500/10", "text-brand-600", "dark:text-brand-400", "font-bold");
+      });
+      const currentNav = document.getElementById(`nav-btn-${modId}`);
+      if (currentNav) {
+        currentNav.classList.add("bg-brand-500/10", "text-brand-600", "dark:text-brand-400", "font-bold");
+      }
+
+      // 渲染动态表头
+      const thead = document.getElementById("custom-mod-table-head");
+      thead.innerHTML = "";
+      mod.schema.forEach(field => {
+        const th = document.createElement("th");
+        th.className = "py-2.5 px-3";
+        th.textContent = field.label;
+        thead.appendChild(th);
+      });
+      const thAction = document.createElement("th");
+      thAction.className = "py-2.5 px-3 text-center";
+      thAction.textContent = "操作";
+      thead.appendChild(thAction);
+
+      // 渲染数据体
+      const tbody = document.getElementById("custom-mod-table-body");
+      tbody.innerHTML = "";
+
+      if (!mod.records || mod.records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${mod.schema.length + 1}" class="text-center py-8 text-slate-400">暂无数据记录，点击右上角新增</td></tr>`;
+        return;
+      }
+
+      mod.records.forEach(rec => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-100/50 dark:hover:bg-slate-900/50 transition";
+        
+        mod.schema.forEach(field => {
+          const td = document.createElement("td");
+          td.className = "py-2.5 px-3 font-mono";
+          const val = rec[field.key] !== undefined ? rec[field.key] : "-";
+          if (field.type === "secret") {
+            td.innerHTML = `<span class="privacy-blur cursor-pointer" title="悬浮查看">${val}</span>`;
+          } else {
+            td.textContent = val;
+          }
+          tr.appendChild(td);
+        });
+
+        // 编辑与删除按钮
+        const tdAct = document.createElement("td");
+        tdAct.className = "py-2.5 px-3 text-center";
+        tdAct.innerHTML = `
+          <button onclick="openEditCustomRecordModal('${mod.id}', '${rec.id}')" class="p-1 text-slate-400 hover:text-brand-500 mr-1" title="编辑记录">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+          </button>
+          <button onclick="deleteCustomRecord('${mod.id}', '${rec.id}')" class="p-1 text-slate-400 hover:text-red-500" title="删除记录">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        `;
+        tr.appendChild(tdAct);
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function openCreateCustomModuleModal() {
+      openModal(`
+        <h3 class="text-base font-bold mb-3">➕ 创建自定义数据模块</h3>
+        <p class="text-xs text-slate-400 mb-4">自由扩展属于您的私有数据模型，无需编写代码即可立即使用。</p>
+        <form id="create-mod-form" onsubmit="handleCreateCustomModuleSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">模块名称</label>
+            <input type="text" id="new-mod-name" required placeholder="如：我的数码装备清单 / 阅读书单" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">简要描述</label>
+            <input type="text" id="new-mod-desc" placeholder="模块的用途说明" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">预设字段定义 (每行一个：字段键名:显示标签:类型)</label>
+            <p class="text-[10px] text-slate-400 mb-1.5">类型支持：text(文本), number(数值), date(日期), secret(敏感隐私)</p>
+            <textarea id="new-mod-schema" rows="4" required class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono">title:名称:text
+purchaseDate:购买日期:date
+price:价格(¥):number
+serialNo:序列号:secret</textarea>
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">创建模块</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleCreateCustomModuleSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById("new-mod-name").value.trim();
+      const desc = document.getElementById("new-mod-desc").value.trim();
+      const schemaRaw = document.getElementById("new-mod-schema").value.trim();
+
+      const schema = [];
+      schemaRaw.split("\n").forEach(line => {
+        const parts = line.split(":");
+        if (parts.length >= 2) {
+          schema.push({
+            key: parts[0].trim(),
+            label: parts[1].trim(),
+            type: parts[2] ? parts[2].trim() : "text"
+          });
+        }
+      });
+
+      const newMod = {
+        id: "mod_" + Date.now(),
+        name,
+        description: desc,
+        icon: "box",
+        schema,
+        records: []
+      };
+
+      if (!AppState.data.customModules) AppState.data.customModules = [];
+      AppState.data.customModules.push(newMod);
+
+      closeModal();
+      renderCustomModulesNav();
+      openCustomModuleView(newMod.id);
+      await commitDataChange(`自定义模块「${name}」已创建`);
+    }
+
+    function openAddCustomRecordModal() {
+      const mod = AppState.data.customModules.find(m => m.id === currentCustomModuleId);
+      if (!mod) return;
+
+      let fieldsHtml = mod.schema.map(field => `
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">${field.label}</label>
+          <input type="${field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}" 
+            data-key="${field.key}" required class="custom-rec-input w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+        </div>
+      `).join("");
+
+      openModal(`
+        <h3 class="text-base font-bold mb-4">在「${mod.name}」中新增记录</h3>
+        <form id="add-rec-form" onsubmit="handleAddCustomRecordSubmit(event)" class="space-y-3">
+          ${fieldsHtml}
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">添加记录</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleAddCustomRecordSubmit(e) {
+      e.preventDefault();
+      const mod = AppState.data.customModules.find(m => m.id === currentCustomModuleId);
+      if (!mod) return;
+
+      const record = { id: "rec_" + Date.now() };
+      document.querySelectorAll(".custom-rec-input").forEach(input => {
+        const key = input.getAttribute("data-key");
+        record[key] = input.value;
+      });
+
+      mod.records.push(record);
+      closeModal();
+      openCustomModuleView(mod.id);
+      await commitDataChange("自定义记录已添加");
+    }
+
+    function openEditCustomRecordModal(modId, recId) {
+      const mod = AppState.data.customModules.find(m => m.id === modId);
+      if (!mod) return;
+      const rec = mod.records.find(r => r.id === recId);
+      if (!rec) return;
+
+      let fieldsHtml = mod.schema.map(field => `
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">${field.label}</label>
+          <input type="${field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}" 
+            data-key="${field.key}" value="${rec[field.key] !== undefined ? String(rec[field.key]).replace(/"/g, '&quot;') : ''}" required class="custom-edit-rec-input w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+        </div>
+      `).join("");
+
+      openModal(`
+        <h3 class="text-base font-bold mb-4">修改「${mod.name}」中的记录</h3>
+        <form id="edit-rec-form" onsubmit="handleEditCustomRecordSubmit(event, '${mod.id}', '${rec.id}')" class="space-y-3">
+          ${fieldsHtml}
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">保存修改</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleEditCustomRecordSubmit(e, modId, recId) {
+      e.preventDefault();
+      const mod = AppState.data.customModules.find(m => m.id === modId);
+      if (!mod) return;
+      const rec = mod.records.find(r => r.id === recId);
+      if (!rec) return;
+
+      document.querySelectorAll(".custom-edit-rec-input").forEach(input => {
+        const key = input.getAttribute("data-key");
+        rec[key] = input.value;
+      });
+
+      closeModal();
+      openCustomModuleView(mod.id);
+      await commitDataChange("自定义记录已修改");
+    }
+
+    async function deleteCustomRecord(modId, recId) {
+      const mod = AppState.data.customModules.find(m => m.id === modId);
+      if (!mod) return;
+      mod.records = mod.records.filter(r => r.id !== recId);
+      openCustomModuleView(mod.id);
+      await commitDataChange("记录已删除");
+    }
+
+    async function promptDeleteCustomModule() {
+      const mod = AppState.data.customModules.find(m => m.id === currentCustomModuleId);
+      if (!mod) return;
+      if (!confirm(`确定要彻底删除模块「${mod.name}」及其中所有数据吗？`)) return;
+
+      AppState.data.customModules = AppState.data.customModules.filter(m => m.id !== currentCustomModuleId);
+      renderCustomModulesNav();
+      switchView("dashboard");
+      await commitDataChange(`模块「${mod.name}」已删除`);
+    }
+
+    /**
+     * [MODULE: SETTINGS & CLOUD SYNC]
+     */
+    function renderSettingsView() {
+      if (!AppState.data) return;
+      const meta = AppState.data.meta;
+      const sync = AppState.data.sync || {};
+
+      document.getElementById("settings-app-title").value = meta.title || "";
+      document.getElementById("settings-app-budget").value = AppState.data.finance.budget || 8000;
+      document.getElementById("settings-autolock-select").value = meta.autoLockMinutes || 15;
+
+      document.getElementById("sync-gh-token").value = sync.ghToken || "";
+      document.getElementById("sync-gist-id").value = sync.gistId || "";
+    }
+
+    async function saveAppearanceSettings() {
+      AppState.data.meta.title = document.getElementById("settings-app-title").value.trim() || "Personal OS";
+      AppState.data.finance.budget = Number(document.getElementById("settings-app-budget").value) || 8000;
+      applyMetaSettings();
+      await commitDataChange("系统偏好已保存");
+    }
+
+    async function updateAutoLockSetting(e) {
+      const mins = parseInt(e.target.value, 10);
+      AppState.data.meta.autoLockMinutes = mins;
+      resetAutoLockTimer();
+      await commitDataChange(`自动锁定时间已设为 ${mins === 0 ? '从不' : mins + '分钟'}`);
+    }
+
+    function openChangePasswordModal() {
+      openModal(`
+        <h3 class="text-base font-bold mb-4">修改主控密码</h3>
+        <form id="change-pwd-form" onsubmit="handleChangePasswordSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">当前主控密码</label>
+            <input type="password" id="chg-old-pwd" required class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">新主控密码 (至少6位)</label>
+            <input type="password" id="chg-new-pwd" required minlength="6" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">确认新主控密码</label>
+            <input type="password" id="chg-confirm-pwd" required minlength="6" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium">确认重设密码</button>
+          </div>
+        </form>
+      `);
+    }
+
+    async function handleChangePasswordSubmit(e) {
+      e.preventDefault();
+      const oldPwd = document.getElementById("chg-old-pwd").value;
+      const newPwd = document.getElementById("chg-new-pwd").value;
+      const confirmPwd = document.getElementById("chg-confirm-pwd").value;
+
+      if (oldPwd !== AppState.masterPassword) {
+        showToast("原主控密码不正确", "error");
+        return;
+      }
+      if (newPwd !== confirmPwd) {
+        showToast("两次输入的新密码不一致", "error");
+        return;
+      }
+
+      AppState.masterPassword = newPwd;
+      closeModal();
+      await commitDataChange("主控密码已重置，数据已使用新密码重新加密");
+    }
+
+    /**
+     * 云端同步 (GitHub Gist API)
+     */
+    async function saveSyncConfig() {
+      const ghToken = document.getElementById("sync-gh-token").value.trim();
+      const gistId = document.getElementById("sync-gist-id").value.trim();
+
+      AppState.data.sync = {
+        ghToken,
+        gistId,
+        lastSyncTime: Date.now()
+      };
+      await commitDataChange("云同步配置已保存");
+    }
+
+    async function autoCreatePrivateGist() {
+      const token = document.getElementById("sync-gh-token").value.trim();
+      if (!token) {
+        showToast("请先填入 GitHub Personal Access Token", "error");
+        return;
+      }
+
+      try {
+        showToast("正在创建私有 Gist...", "info");
+        const encrypted = await CryptoEngine.encryptData(AppState.data, AppState.masterPassword);
+        const payloadStr = JSON.stringify(encrypted, null, 2);
+
+        const response = await fetch("https://api.github.com/gists", {
+          method: "POST",
+          headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            description: "Personal OS & Private Hub Encrypted Backup",
+            public: false,
+            files: {
+              "personal_hub_backup.enc.json": { content: payloadStr }
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`GitHub API 响应失败: ${response.status}`);
+        }
+
+        const resData = await response.json();
+        const gistId = resData.id;
+        document.getElementById("sync-gist-id").value = gistId;
+        AppState.data.sync.ghToken = token;
+        AppState.data.sync.gistId = gistId;
+        await commitDataChange(`私有 Gist 已自动创建 (ID: ${gistId.substring(0, 8)}...)`);
+      } catch (err) {
+        console.error(err);
+        showToast("自动创建 Gist 失败，请检查 Token 权限", "error");
+      }
+    }
+
+    async function pushDataToGist() {
+      const token = document.getElementById("sync-gh-token").value.trim() || AppState.data.sync?.ghToken;
+      const gistId = document.getElementById("sync-gist-id").value.trim() || AppState.data.sync?.gistId;
+
+      if (!token || !gistId) {
+        showToast("请确保已填写 Token 与 Gist ID", "error");
+        return;
+      }
+
+      try {
+        showToast("正在加密并推送至云端 Gist...", "info");
+        const encrypted = await CryptoEngine.encryptData(AppState.data, AppState.masterPassword);
+        const payloadStr = JSON.stringify(encrypted, null, 2);
+
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+          method: "PATCH",
+          headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            description: "Personal OS Encrypted Backup",
+            files: {
+              "personal_hub_backup.enc.json": { content: payloadStr }
+            }
+          })
+        });
+
+        if (!response.ok) throw new Error("推送更新失败");
+        showToast("云端推送成功！加密包已覆盖云端", "success");
+      } catch (err) {
+        showToast("云端推送失败，请检查网络或 Token 状态", "error");
+      }
+    }
+
+    async function pullDataFromGist() {
+      const token = document.getElementById("sync-gh-token").value.trim() || AppState.data.sync?.ghToken;
+      const gistId = document.getElementById("sync-gist-id").value.trim() || AppState.data.sync?.gistId;
+
+      if (!token || !gistId) {
+        showToast("请确保已填写 Token 与 Gist ID", "error");
+        return;
+      }
+
+      if (!confirm("拉取云端数据将覆盖当前本地未推送的修改，是否继续？")) return;
+
+      try {
+        showToast("正在从云端 Gist 拉取密文...", "info");
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+          headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) throw new Error("拉取请求失败");
+        const gist = await response.json();
+        const fileContent = gist.files["personal_hub_backup.enc.json"]?.content;
+        if (!fileContent) throw new Error("未在 Gist 中找到加密备份文件");
+
+        const remoteEncrypted = JSON.parse(fileContent);
+        // 使用当前主密码解密验证
+        const decrypted = await CryptoEngine.decryptData(remoteEncrypted, AppState.masterPassword);
+
+        AppState.data = decrypted;
+        await StorageService.saveEncryptedPayload(remoteEncrypted);
+        refreshCurrentView(AppState.activeView);
+        showToast("云端数据拉取成功并已解密同步至本地！", "success");
+      } catch (err) {
+        showToast(`拉取失败: ${err.message}`, "error");
+      }
+    }
+
+    function openSyncModal() {
+      switchView("settings");
+    }
+
+    /**
+     * 数据主权：全量导出与导入
+     */
+    async function exportEncryptedBackup() {
+      try {
+        const encrypted = await CryptoEngine.encryptData(AppState.data, AppState.masterPassword);
+        const blob = new Blob([JSON.stringify(encrypted, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `personal_hub_backup_${new Date().toISOString().slice(0, 10)}.enc.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast("密态备份文件已导出，可安全存放任何云端或介质", "success");
+      } catch (err) {
+        showToast("导出备份失败", "error");
+      }
+    }
+
+    function exportPlaintextBackup() {
+      if (!confirm("警告：明文导出包含您的所有隐私数据（未加密）。请确认您仅在绝对可信的安全设备上进行此操作！")) return;
+      const blob = new Blob([JSON.stringify(AppState.data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `personal_hub_plaintext_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("明文数据已导出", "warning");
+    }
+
+    async function handleRestoreFromSettings() {
+      const fileInput = document.getElementById("settings-restore-file");
+      const file = fileInput.files[0];
+      if (!file) {
+        showToast("请先选择备份文件", "error");
+        return;
+      }
+      handleFileRestore(file);
+    }
+
+    async function handleFileRestore(file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.ciphertext && parsed.salt && parsed.iv) {
+            // 是加密文件，需要使用密码解密
+            const pwd = prompt("请输入此备份文件的加密主密码：");
+            if (!pwd) return;
+            const decrypted = await CryptoEngine.decryptData(parsed, pwd);
+            AppState.data = decrypted;
+            AppState.masterPassword = pwd;
+            await StorageService.saveEncryptedPayload(parsed);
+            refreshCurrentView(AppState.activeView);
+            showToast("已成功从加密备份中恢复全部数据！", "success");
+          } else if (parsed.meta && parsed.profile) {
+            // 是明文 JSON
+            AppState.data = parsed;
+            await commitDataChange("已导入明文备份并自动执行端到端加密存储");
+            refreshCurrentView(AppState.activeView);
+            showToast("明文数据导入成功！", "success");
+          } else {
+            showToast("备份文件格式不符合要求", "error");
+          }
+        } catch (err) {
+          showToast(`恢复失败: ${err.message}`, "error");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function handleRestoreFromFile(e) {
+      const file = e.target.files[0];
+      if (file) handleFileRestore(file);
+    }
+
+    function triggerRestorePrompt() {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) handleFileRestore(file);
+      };
+      input.click();
+    }
+
+    async function promptResetAllData() {
+      if (confirm("⚠️ 极度危险操作：确定要彻底清除本地所有加密数据吗？此操作不可逆！")) {
+        const doubleCheck = prompt("请输入大写 'DELETE' 确认清空：");
+        if (doubleCheck === "DELETE") {
+          await StorageService.clearAllLocalData();
+          localStorage.clear();
+          location.reload();
+        }
+      }
+    }
+
+    /**
+     * [MODULE: UI CONTROLS & THEME]
+     */
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById("sidebar-nav");
+      const backdrop = document.getElementById("sidebar-backdrop");
+      sidebar.classList.toggle("-translate-x-full");
+      backdrop.classList.toggle("hidden");
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle("dark");
+      if (AppState.data) {
+        AppState.data.meta.theme = isDark ? "dark" : "light";
+        commitDataChange(null);
+      }
+      updateThemeIcon();
+      // 重新绘制图表适配色彩
+      if (AppState.activeView === "dashboard") renderDashFinanceChart();
+      if (AppState.activeView === "finance") renderFinanceCharts();
+    }
+
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains("dark");
+      const icon = document.getElementById("theme-toggle-icon");
+      if (icon) {
+        icon.setAttribute("data-lucide", isDark ? "sun" : "moon");
+        lucide.createIcons();
+      }
+    }
+
+    /**
+     * 全局快捷键与搜索
+     */
+    window.addEventListener("keydown", (e) => {
+      // 按 '/' 聚焦全局搜索框
+      if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+        e.preventDefault();
+        const searchInput = document.getElementById("global-search-input");
+        if (searchInput) searchInput.focus();
+      }
+      // Esc 关闭模态框
+      if (e.key === "Escape") {
+        closeModal();
+      }
+    });
+
+    document.getElementById("global-search-input")?.addEventListener("input", (e) => {
+      const query = e.target.value.trim().toLowerCase();
+      if (!query) return;
+
+      // 如果当前不是书签或笔记，自动导向书签或高亮
+      if (AppState.activeView !== "bookmarks" && AppState.activeView !== "notes") {
+        switchView("bookmarks");
+      }
+      if (AppState.activeView === "bookmarks") {
+        const cards = document.querySelectorAll("#bookmarks-grid-container > div");
+        cards.forEach(card => {
+          const text = card.textContent.toLowerCase();
+          card.style.display = text.includes(query) ? "flex" : "none";
+        });
+      }
+    });
+
+    /**
+     * [MODULE: APP BOOTSTRAP]
+     * 应用程序入口：检查本地 IndexedDB 状态
+     */
+    async function initApp() {
+      // 注册 PWA Service Worker (支持离线缓存和手机端添加到桌面 App)
+      if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration skipped:', err));
+      }
+
+      // 检查当前环境是否满足安全加密要求 (Secure Context)
+      if (!window.crypto || !window.crypto.subtle) {
+        showToast("⚠️ 当前非 HTTPS 安全环境，浏览器已禁用 Web Crypto 加密接口！请通过已配置的公网 HTTPS 网址访问。", "error");
+      }
+
+      try {
+        const payload = await StorageService.getEncryptedPayload();
+        const onboardingPanel = document.getElementById("onboarding-panel");
+        const unlockPanel = document.getElementById("unlock-panel");
+
+        if (!payload) {
+          // 首次进入：显示初始化并设置主密码
+          onboardingPanel.classList.remove("hidden");
+          unlockPanel.classList.add("hidden");
+        } else {
+          // 已有数据：显示解锁密码窗口
+          onboardingPanel.classList.add("hidden");
+          unlockPanel.classList.remove("hidden");
+          SecurityController.checkCooldown();
+        }
+        lucide.createIcons();
+      } catch (err) {
+        console.error("启动检查失败:", err);
+      }
+    }
+
+    // 首次设置主密码表单提交
+    document.getElementById("setup-master-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const pwd = document.getElementById("new-master-pwd").value;
+      const confirmPwd = document.getElementById("confirm-master-pwd").value;
+
+      if (pwd.length < 6) {
+        showToast("主控密码长度不能少于6位", "error");
+        return;
+      }
+      if (pwd !== confirmPwd) {
+        showToast("两次输入的密码不一致", "error");
+        return;
+      }
+
+      showToast("正在派生密钥并加密预设数据...", "info");
+      const encrypted = await CryptoEngine.encryptData(INITIAL_DEMO_DATA, pwd);
+      await StorageService.saveEncryptedPayload(encrypted);
+
+      onUnlockSuccess(INITIAL_DEMO_DATA, pwd);
+    });
+
+    // 解锁表单提交
+    document.getElementById("unlock-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (SecurityController.checkCooldown()) return;
+
+      const pwd = document.getElementById("unlock-pwd").value;
+      const payload = await StorageService.getEncryptedPayload();
+
+      if (!payload) {
+        showToast("未检测到本地加密数据", "error");
+        return;
+      }
+
+      try {
+        const decrypted = await CryptoEngine.decryptData(payload, pwd);
+        onUnlockSuccess(decrypted, pwd);
+      } catch (err) {
+        const failedCount = SecurityController.recordFailedAttempt();
+        showToast(`密码错误！已连续输错 ${failedCount} 次`, "error");
+      }
+    });
+
+    // 密码强度检测
+    document.getElementById("new-master-pwd")?.addEventListener("input", (e) => {
+      const val = e.target.value;
+      const bar = document.getElementById("pwd-strength-bar");
+      if (!bar) return;
+
+      let score = 0;
+      if (val.length >= 6) score += 25;
+      if (val.length >= 10) score += 25;
+      if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score += 25;
+      if (/[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val)) score += 25;
+
+      bar.style.width = `${score}%`;
+      if (score <= 25) bar.className = "h-full transition-all duration-300 bg-red-500";
+      else if (score <= 50) bar.className = "h-full transition-all duration-300 bg-amber-500";
+      else if (score <= 75) bar.className = "h-full transition-all duration-300 bg-blue-500";
+      else bar.className = "h-full transition-all duration-300 bg-emerald-500";
+    });
+
+    // 页面加载触发初始化
+    window.addEventListener("DOMContentLoaded", initApp);
+  </script>
+</body>
+</html>
